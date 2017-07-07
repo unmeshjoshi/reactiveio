@@ -8,6 +8,8 @@ import java.nio.channels.{SelectionKey, ServerSocketChannel, SocketChannel}
 import akka.util.ByteString
 import com.reactive.http.parser.HttpRequestParser
 
+import scala.annotation.tailrec
+
 
 object SingleThreadedNIOServer extends App {
 
@@ -21,7 +23,10 @@ object SingleThreadedNIOServer extends App {
 
   println("Bound to localhost:5555")
 
-  while (true) {
+  runEventLoop()
+
+  @tailrec
+  def runEventLoop(): Unit = {
     if (selector.select() > 0) {
       val keys = selector.selectedKeys()
       val iterator = keys.iterator()
@@ -37,8 +42,8 @@ object SingleThreadedNIOServer extends App {
       }
       keys.clear() // we need to remove the selected keys from the set, otherwise they remain selected
     }
+    runEventLoop()
   }
-
 
   def accept(key: SelectionKey) = {
     println("Accepting")
@@ -60,6 +65,7 @@ object SingleThreadedNIOServer extends App {
 
   private def readFromSocket(socketChannel: SocketChannel) = {
     val buffer = ByteBuffer.allocate(1024)
+    val bytesRead = socketChannel.read(buffer)
     buffer.flip()
     ByteString(buffer)
   }
