@@ -9,7 +9,7 @@ import akka.util.ByteString
 import com.reactive.http.parser.HttpRequestParser
 
 
-object SingleTreadedNIOServer extends App {
+object SingleThreadedNIOServer extends App {
 
   val serverSocketChannel: ServerSocketChannel = ServerSocketChannel.open
   serverSocketChannel.configureBlocking(false)
@@ -60,10 +60,8 @@ object SingleTreadedNIOServer extends App {
 
   private def readFromSocket(socketChannel: SocketChannel) = {
     val buffer = ByteBuffer.allocate(1024)
-    val bytesRead = socketChannel.read(buffer)
     buffer.flip()
-    val byteString = ByteString(buffer)
-    byteString
+    ByteString(buffer)
   }
 
   def write(key: SelectionKey) = {
