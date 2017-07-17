@@ -2,7 +2,7 @@ package com.reactive.http.server
 
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import java.nio.channels.spi.SelectorProvider
+import java.nio.channels.spi.{AbstractSelector, SelectorProvider}
 import java.nio.channels.{SelectionKey, ServerSocketChannel, SocketChannel}
 
 import akka.util.ByteString
@@ -15,11 +15,11 @@ object SingleThreadedNIOServer extends App {
 
   val serverSocketChannel: ServerSocketChannel = ServerSocketChannel.open
   serverSocketChannel.configureBlocking(false)
-  val provider = SelectorProvider.provider()
-  val selector = provider.openSelector()
+  val provider: SelectorProvider = SelectorProvider.provider()
+  val selector: AbstractSelector = provider.openSelector()
 
-  val channel = serverSocketChannel.bind(new InetSocketAddress("localhost", 5555))
-  val key = serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT)
+  val channel: ServerSocketChannel = serverSocketChannel.bind(new InetSocketAddress("localhost", 5555))
+  val key: SelectionKey = serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT)
 
   println("Bound to localhost:5555")
 
@@ -57,8 +57,8 @@ object SingleThreadedNIOServer extends App {
     val socketChannel = key.channel().asInstanceOf[SocketChannel]
     val byteString = readFromSocket(socketChannel)
 
-    val httpRequest = new HttpRequestParser().parseMessage(byteString)
-    println(s"Read http request ${httpRequest}")
+    val httpRequest = new HttpRequestParser().parseMessage(byteString) //TODO: make httprequestparser stateful
+    println(s"Read http request $httpRequest")
 
     socketChannel.register(selector, SelectionKey.OP_WRITE, httpRequest)
   }
@@ -76,8 +76,9 @@ object SingleThreadedNIOServer extends App {
 
     println(s"Writing response for ${httpRequest}")
 
-    val response = s"Hello NIO World from ${httpRequest.target} \r\n"
-    socketChannel.write(ByteBuffer.wrap(response.getBytes()))
+//    val response = s"Hello NIO World from ${httpRequest.target} \r\n"
+    val response = "HTTP/1.1 200 OK\r\n Content-Length: 38\r\n Content-Type: text/html\r\n \r\n <html><body>Hello World!</body></html>"
+    socketChannel.write(ByteBuffer.wrap(response.getBytes("UTF-8")))
     socketChannel.close()
   }
 }
