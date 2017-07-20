@@ -4,8 +4,10 @@ import java.nio.channels.SelectionKey._
 import java.nio.channels.{CancelledKeyException, Selector}
 
 import akka.actor.ActorRef
+import com.reactive.http.server.actor.SelectionHandler.{ChannelAcceptable, ChannelConnectable, ChannelReadable, ChannelWritable}
 
 import scala.concurrent.ExecutionContext
+
 
 class SelectTask(val executionContext: ExecutionContext, selector: Selector) extends Runnable {
   final val OP_READ_AND_WRITE = OP_READ | OP_WRITE // compile-time constant

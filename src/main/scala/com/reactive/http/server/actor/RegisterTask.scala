@@ -1,10 +1,9 @@
 package com.reactive.http.server.actor
 
-import java.nio.channels.SelectionKey.{OP_READ, OP_WRITE}
 import java.nio.channels.spi.AbstractSelector
-import java.nio.channels.{CancelledKeyException, SelectableChannel, SelectionKey, Selector}
+import java.nio.channels.{SelectableChannel, SelectionKey}
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.ActorRef
 
 import scala.concurrent.ExecutionContext
 
@@ -14,11 +13,7 @@ class RegisterTask(context: ExecutionContext, selector: AbstractSelector, channe
     val key = channel.register(selector, initialOps, channelActor)
     channelActor ! new ChannelRegistration {
 
-      def enableInterestOps(key: SelectionKey, ops: Int): Unit = ???
-
       def enableInterest(ops: Int): Unit = enableInterestOps(key, ops)
-
-      def disableInterestOps(key: SelectionKey, ops: Int): Unit = ???
 
       def disableInterest(ops: Int): Unit = disableInterestOps(key, ops)
 
@@ -31,6 +26,22 @@ class RegisterTask(context: ExecutionContext, selector: AbstractSelector, channe
         // is performed immediately.
         cancelKey(key)
       }
+
+
+      // always set the interest keys on the selector thread,
+      // benchmarks show that not doing so results in lock contention
+      private def enableInterestOps(key: SelectionKey, ops: Int): Unit = {
+        context.execute(() ⇒
+          {
+            def run(): Unit = {
+              val currentOps = key.interestOps
+              val newOps = currentOps | ops
+              if (newOps != currentOps) key.interestOps(newOps)
+            }
+          }
+        )
+      }
     }
+    def disableInterestOps(key: SelectionKey, ops: Int): Unit = ???
   }
 }

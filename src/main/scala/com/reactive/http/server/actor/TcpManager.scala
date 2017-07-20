@@ -1,85 +1,69 @@
 package com.reactive.http.server.actor
 
 import java.net.InetSocketAddress
-import java.nio.channels.SelectableChannel
-import java.nio.channels.spi.{AbstractSelector, SelectorProvider}
+import java.nio.channels.SocketChannel
 
-import akka.actor.{Actor, ActorRef, NoSerializationVerificationNeeded, Props}
-import com.typesafe.config.Config
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.io.Tcp.{Connected, Received, Register, ResumeAccepting}
+import com.reactive.http.parser.HttpRequestParser
+import com.reactive.http.server.actor.TcpManager.{Bind, Bound}
 
-import scala.concurrent.ExecutionContext
-
-sealed trait TcpMessages
 
 object TcpManager {
+  trait Command
 
-  case class Bind(handler: ActorRef, localAddress: InetSocketAddress) extends TcpMessages
+  final case class Bind(handler: ActorRef, localAddress: InetSocketAddress) extends Command
 
+  final case class Bound(address: InetSocketAddress) extends Command
+
+  final case class ResumeAccepting(batchSize: Int) extends Command
+
+  final case class RegisterIncomingConnection(socketChannel: SocketChannel, props: (ChannelRegistry) ⇒ Props)
+
+}
+
+//this is just to make it map easily to akka.io.
+abstract class SelectorBasedManager() extends Actor {
+  val selectorPool = context.actorOf(Props(new SelectionHandler))
+  def selector = selectorPool
 }
 
 class TcpManager extends SelectorBasedManager {
-
-  println("started")
-
   import TcpManager._
 
   override def receive: Receive = {
-    case Bind(handler, localAddress) ⇒ {
+    case b@Bind(handler, localAddress) ⇒ {
+      val commander = sender()
+      selector ! Bind(commander, localAddress)
     }
   }
 }
 
 
-class SelectionHandlerSettings(config: Config) {
-  //  system.settings.config.getConfig("akka.io.tcp")
-}
+class ClientActor(val endpoint:InetSocketAddress) extends Actor {
+  val tcpManager = context.actorOf(Props(new TcpManager)) //TODO: this should be moved to actorsystem extension
+  var listener: ActorRef = _
 
-class SelectionHandler extends Actor {
-  private[this] val registry = {
-    val SelectorDispatcher: String = context.system.settings.config.getConfig("com-reactive-tcp").getString("selector-dispatcher")
-    val dispatcher = context.system.dispatchers.lookup(SelectorDispatcher)
-    new ChannelRegistry(context.dispatcher)
+  override def preStart(): Unit = {
+    tcpManager ! Bind(self, endpoint) //self sent to
   }
-
-  // It uses SerializedSuspendableExecutionContext with PinnedDispatcher (This dispatcher dedicates a unique thread for each
-  // actor using it; i.e. each actor will have its own thread pool with only one thread in the pool)
-  class ChannelRegistry(executionContext: ExecutionContext) {
-
-    private[this] val selector: AbstractSelector = SelectorProvider.provider.openSelector
-
-    private[this] val select = new SelectTask(executionContext, selector)
-    executionContext.execute(select) // start selection "loop"
-
-
-    def register(channel: SelectableChannel, initialOps: Int)(implicit channelActor: ActorRef): Unit = {
-      val register = new RegisterTask(executionContext, selector, channel, initialOps, channelActor)
-    }
-
-    private def execute(task: Runnable): Unit = {
-      executionContext.execute(task)
-    }
-  }
-
 
   override def receive: Receive = {
-    case _ ⇒ println("in SelectionHandler")
+    case Bound ⇒
+      listener = sender()
+      listener ! ResumeAccepting
+    case Connected(remoteAddress, localAddress) ⇒
+      val connection = sender()
+      connection ! Register(self, keepOpenOnPeerClosed = true, useResumeWriting = false)
+    case Received(data) ⇒
+      val httpRequest = new HttpRequestParser().parseMessage(data) //TODO: make httprequestparser stateful
+      println(s"Read http request $httpRequest")
   }
 }
 
-trait ChannelRegistration extends NoSerializationVerificationNeeded {
-  def enableInterest(op: Int): Unit
 
-  def disableInterest(op: Int): Unit
-
-  /**
-    * Explicitly cancel the registration
-    *
-    * This wakes up the selector to make sure the cancellation takes effect immediately.
-    */
-  def cancel(): Unit
-}
-
-abstract class SelectorBasedManager() extends Actor {
-  private val selectorPool = context.actorOf(Props(new SelectionHandler))
+object Server extends App {
+  val system = ActorSystem("Server")
+  system.actorOf(Props(new ClientActor(new InetSocketAddress("localhost", 5555))))
 }
 
