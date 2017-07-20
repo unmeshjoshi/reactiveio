@@ -33,6 +33,7 @@ class TcpManager extends SelectorBasedManager {
 
   override def receive: Receive = {
     case b@Bind(handler, localAddress) ⇒ {
+      println("Binding")
       val commander = sender()
       selector ! Bind(commander, localAddress)
     }
@@ -50,6 +51,7 @@ class ClientActor(val endpoint:InetSocketAddress) extends Actor {
 
   override def receive: Receive = {
     case Bound ⇒
+      println("Bound")
       listener = sender()
       listener ! ResumeAccepting
     case Connected(remoteAddress, localAddress) ⇒

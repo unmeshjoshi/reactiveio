@@ -13,6 +13,7 @@ class SelectTask(val executionContext: ExecutionContext, selector: Selector) ext
   final val OP_READ_AND_WRITE = OP_READ | OP_WRITE // compile-time constant
 
   def tryRun(): Unit = {
+    println("running selector loop")
     if (selector.select() > 0) { // This assumes select return value == selectedKeys.size
       val keys = selector.selectedKeys
       val iterator = keys.iterator()
@@ -25,15 +26,15 @@ class SelectTask(val executionContext: ExecutionContext, selector: Selector) ext
             key.interestOps(key.interestOps & ~readyOps) // prevent immediate reselection by always clearing
             val connection = key.attachment.asInstanceOf[ActorRef]
             readyOps match {
-              case OP_READ                   ⇒ connection ! ChannelReadable
-              case OP_WRITE                  ⇒ connection ! ChannelWritable
-              case OP_READ_AND_WRITE         ⇒ {
+              case OP_READ ⇒ connection ! ChannelReadable
+              case OP_WRITE ⇒ connection ! ChannelWritable
+              case OP_READ_AND_WRITE ⇒ {
                 connection ! ChannelWritable;
                 connection ! ChannelReadable
               }
-              case x if (x & OP_ACCEPT) > 0  ⇒ connection ! ChannelAcceptable
+              case x if (x & OP_ACCEPT) > 0 ⇒ connection ! ChannelAcceptable
               case x if (x & OP_CONNECT) > 0 ⇒ connection ! ChannelConnectable
-              case x                         ⇒ println("Invalid readyOps: [{}]", x)
+              case x ⇒ println("Invalid readyOps: [{}]", x)
             }
           } catch {
             case _: CancelledKeyException ⇒
@@ -46,9 +47,16 @@ class SelectTask(val executionContext: ExecutionContext, selector: Selector) ext
     }
   }
 
-  override def run(): Unit =
+  override def run(): Unit = {
+    println("Running")
+
     if (selector.isOpen) {
-      tryRun()
-      executionContext.execute(this) // re-schedule select behind all currently queued tasks
+      try {
+        tryRun()
+        println("scheduling task again")
+      } finally {
+        executionContext.execute(this)
+      } // re-schedule select behind all currently queued tasks
     }
+  }
 }

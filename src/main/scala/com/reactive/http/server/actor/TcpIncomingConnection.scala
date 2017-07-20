@@ -9,7 +9,7 @@ import java.nio.channels.SocketChannel
 import akka.actor.{Actor, ActorRef}
 import akka.io.Tcp._
 import akka.util.ByteString
-import com.reactive.http.server.actor.SelectionHandler.ChannelReadable
+import com.reactive.http.server.actor.SelectionHandler.{ChannelReadable, ChannelWritable}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
@@ -31,10 +31,20 @@ class TcpIncomingConnection(channel: SocketChannel,
 
   def handleClose(registration: ChannelRegistration, handler: ActorRef, someRef: Some[ActorRef], event: ConnectionClosed) = ???
 
-  def handleWriteMessages(registration: ChannelRegistration, ref: ActorRef):Receive = ???
+
+  def doWrite(handler: ActorRef): Unit = {
+
+  }
+
+  def handleWriteMessages(registration: ChannelRegistration, handler: ActorRef): Receive = {
+    case ChannelWritable ⇒
+      doWrite(handler)
+    case ResumeWriting ⇒ println("resume write")
+
+  }
 
   def connected(registration: ChannelRegistration, handler: ActorRef): Receive =
-    handleWriteMessages(registration: ChannelRegistration, handler: ActorRef) orElse {
+    handleWriteMessages(registration, handler) orElse {
       case SuspendReading ⇒ suspendReading(registration, handler)
       case ResumeReading ⇒ resumeReading(registration)
       case ChannelReadable ⇒ doRead(registration, handler)
@@ -43,8 +53,11 @@ class TcpIncomingConnection(channel: SocketChannel,
 
 
   trait ReadResult
+
   object AllRead extends ReadResult
+
   object EndOfStream extends ReadResult
+
   object MoreDataWaiting extends ReadResult
 
 
@@ -57,7 +70,7 @@ class TcpIncomingConnection(channel: SocketChannel,
         // never read more than the configured limit
         buffer.clear()
         val maxBufferSpace = math.min(128000, remainingLimit) //128kb
-        buffer.limit(maxBufferSpace)
+        //        buffer.limit(maxBufferSpace)
         val readBytes = channel.read(buffer)
         buffer.flip()
         if (readBytes > 0) handler ! Received(ByteString(buffer))

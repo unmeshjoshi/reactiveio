@@ -36,22 +36,25 @@ class SelectionHandler extends Actor {
   private[this] val registry = {
     val SelectorDispatcher: String = context.system.settings.config.getConfig("com-reactive-tcp").getString("selector-dispatcher")
     val dispatcher = context.system.dispatchers.lookup(SelectorDispatcher)
-    new ChannelRegistryImpl(context.dispatcher)
+    new ChannelRegistryImpl(dispatcher)
   }
 
   // It uses SerializedSuspendableExecutionContext with PinnedDispatcher (This dispatcher dedicates a unique thread for each
   // actor using it; i.e. each actor will have its own thread pool with only one thread in the pool)
   class ChannelRegistryImpl(executionContext: ExecutionContext) extends ChannelRegistry {
+    println("created channel registry")
 
     private[this] val selector: AbstractSelector = SelectorProvider.provider.openSelector
 
     private[this] val select = new SelectTask(executionContext, selector)
+    println("scheduling selector task")
     executionContext.execute(select) // start selection "loop"
 
 
     def register(channel: SelectableChannel, initialOps: Int)(implicit channelActor: ActorRef): Unit = {
       val register = new RegisterTask(executionContext, selector, channel, initialOps, channelActor)
       execute(register)
+      selector.wakeup()
     }
 
 
@@ -62,6 +65,7 @@ class SelectionHandler extends Actor {
 
   override def receive: Receive = {
     case b:Bind ⇒
+      println("SelectionHandler bind Creating TcpListner")
       val bindCommander = sender()
       context.actorOf(Props(new TcpListner(self, registry, bindCommander, b)))
     //in case of akka http these are sent as worker commands ⇒
