@@ -23,7 +23,7 @@ object TcpManager {
 
   final case class ResumeAccepting(batchSize: Int) extends Command
 
-  final case class RegisterIncomingConnection(socketChannel: SocketChannel, props: (ChannelRegistry) ⇒ Props) extends Event
+  final case class RegisterIncomingConnection(socketChannel: SocketChannel, props: (ChannelRegistry) ⇒ Props) extends Command
 
   final case class Register(handler: ActorRef, keepOpenOnPeerClosed: Boolean = false, useResumeWriting: Boolean = true) extends Command
 
@@ -31,9 +31,15 @@ object TcpManager {
 
   case object ResumeReading extends Command
 
+  final case class Received(data: ByteString) extends Event
+
   case object SuspendReading extends Command
 
-  final case class Received(data: ByteString) extends Event
+
+  sealed abstract class WriteCommand extends Command
+
+  final case class Write(data: ByteString, ack: Event) extends WriteCommand
+
 
   case class NoAck(token: Any) extends Event
 
@@ -42,10 +48,6 @@ object TcpManager {
     * explicitly provided. Its “token” is `null`.
     */
   object NoAck extends NoAck(null)
-
-  sealed abstract class WriteCommand extends Command
-
-  final case class Write(data: ByteString, ack: Event) extends WriteCommand
 
   object Write {
     val empty: Write = Write(ByteString.empty, NoAck)
@@ -56,13 +58,11 @@ object TcpManager {
 
   case object CloseCommand extends Command
   case object ConnectionClosed extends Event
-
 }
 
 //this is just to make it map easily to akka.io.
 abstract class SelectorBasedManager() extends Actor {
   val selectorPool = context.actorOf(Props(new SelectionHandler))
-
   def selector = selectorPool
 }
 
@@ -80,7 +80,7 @@ class TcpManager extends SelectorBasedManager {
 }
 
 
-//this represents a TcpStreamLogic graph stage.
+//this represents a TcpStreamLogic graph stage. Handles reading from and writing to connection based on pull/push
 class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddress) extends Actor {
   override def preStart(): Unit = {
     connection ! Register(self, keepOpenOnPeerClosed = true, useResumeWriting = false)
@@ -97,7 +97,7 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
 
 
 //Equivalent of ConnectionSourceStage
-class ClientActor(val endpoint: InetSocketAddress) extends Actor {
+class ServerActor(val endpoint: InetSocketAddress) extends Actor {
   val tcpManager = context.actorOf(Props(new TcpManager)) //TODO: this should be moved to actorsystem extension
   var listener: ActorRef = _
 
@@ -115,10 +115,3 @@ class ClientActor(val endpoint: InetSocketAddress) extends Actor {
       context.actorOf(Props(new TcpConnectionHandler(connection, remoteAddress)))
   }
 }
-
-
-object Server extends App {
-  val system = ActorSystem("Server")
-  system.actorOf(Props(new ClientActor(new InetSocketAddress("localhost", 5555))))
-}
-
