@@ -7,9 +7,10 @@ import java.nio.channels.SelectionKey.OP_READ
 import java.nio.channels.SocketChannel
 
 import akka.actor.{Actor, ActorRef}
-import akka.io.Tcp._
 import akka.util.ByteString
 import com.reactive.http.server.actor.SelectionHandler.{ChannelReadable, ChannelWritable}
+import com.reactive.http.server.actor.TcpManager._
+import com.reactive.http.server.actor.Writer.EmptyPendingWrite
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
@@ -29,26 +30,35 @@ class TcpIncomingConnection(channel: SocketChannel,
 
   def suspendReading(registration: ChannelRegistration, handler: ActorRef) = ???
 
-  def handleClose(registration: ChannelRegistration, handler: ActorRef, someRef: Some[ActorRef], event: ConnectionClosed) = ???
+  def handleClose(registration: ChannelRegistration, handler: ActorRef, someRef: Some[ActorRef]) = {
+    println("Closing channel.")
+    channel.close()
+  }
 
 
   def doWrite(handler: ActorRef): Unit = {
-
+    pendingWrite.doWrite()
   }
+
+  var pendingWrite:Writer.PendingWrite = Writer.EmptyPendingWrite
 
   def handleWriteMessages(registration: ChannelRegistration, handler: ActorRef): Receive = {
     case ChannelWritable ⇒
       doWrite(handler)
-    case ResumeWriting ⇒ println("resume write")
-
+    case write: WriteCommand ⇒
+      println(s"Accepting ${write}")
+      pendingWrite = Writer.PendingWrite(sender(), write, channel, Some(registration))
+      if (writePending) doWrite(handler)
   }
+
+  def writePending = pendingWrite ne EmptyPendingWrite
 
   def connected(registration: ChannelRegistration, handler: ActorRef): Receive =
     handleWriteMessages(registration, handler) orElse {
       case SuspendReading ⇒ suspendReading(registration, handler)
       case ResumeReading ⇒ resumeReading(registration)
       case ChannelReadable ⇒ doRead(registration, handler)
-      case cmd: CloseCommand ⇒ handleClose(registration, handler, Some(sender()), cmd.event)
+      case CloseCommand ⇒ handleClose(registration, handler, Some(sender()))
     }
 
 
