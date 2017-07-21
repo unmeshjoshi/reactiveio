@@ -33,11 +33,10 @@ class RegisterTask(context: ExecutionContext, selector: AbstractSelector, channe
       private def enableInterestOps(key: SelectionKey, ops: Int): Unit = {
         context.execute(() ⇒
           {
-            def run(): Unit = {
+              println(s"Setting ${ops} on ${key.channel()}")
               val currentOps = key.interestOps
               val newOps = currentOps | ops
               if (newOps != currentOps) key.interestOps(newOps)
-            }
           }
         )
       }

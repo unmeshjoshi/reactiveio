@@ -5,6 +5,6 @@ import com.reactive.http.server.actor.ServerActor
 
 object Server extends App {
   val system = ActorSystem("Server")
-  system.actorOf(Props(new ServerActor(new InetSocketAddress("localhost", 5555))))
+  system.actorOf(Props(new ServerActor(new InetSocketAddress("localhost", 5555))), "ServerActor")
 }
 

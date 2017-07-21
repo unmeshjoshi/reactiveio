@@ -56,6 +56,7 @@ class SelectionHandler extends Actor {
     def register(channel: SelectableChannel, initialOps: Int)(implicit channelActor: ActorRef): Unit = {
       val register = new RegisterTask(executionContext, selector, channel, initialOps, channelActor)
       execute(register)
+      println("Waking up selector")
       selector.wakeup()
     }
 

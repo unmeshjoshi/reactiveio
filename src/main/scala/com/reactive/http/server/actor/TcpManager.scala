@@ -3,7 +3,7 @@ package com.reactive.http.server.actor
 import java.net.InetSocketAddress
 import java.nio.channels.SocketChannel
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.util.ByteString
 import com.reactive.http.parser.HttpRequestParser
 import com.reactive.http.server.actor.TcpManager._
@@ -23,7 +23,7 @@ object TcpManager {
 
   final case class ResumeAccepting(batchSize: Int) extends Command
 
-  final case class RegisterIncomingConnection(socketChannel: SocketChannel, props: (ChannelRegistry) ⇒ Props) extends Command
+  final case class RegisterIncomingConnection(socketChannel: SocketChannel, props: (ChannelRegistry) ⇒ Props) extends Command with Event
 
   final case class Register(handler: ActorRef, keepOpenOnPeerClosed: Boolean = false, useResumeWriting: Boolean = true) extends Command
 
@@ -98,20 +98,26 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
 
 //Equivalent of ConnectionSourceStage
 class ServerActor(val endpoint: InetSocketAddress) extends Actor {
-  val tcpManager = context.actorOf(Props(new TcpManager)) //TODO: this should be moved to actorsystem extension
+  val tcpManager = context.actorOf(Props(new TcpManager), "tcpManager") //TODO: this should be moved to actorsystem extension
   var listener: ActorRef = _
+  var numberOfConnections = 0
 
   override def preStart(): Unit = {
     tcpManager ! Bind(self, endpoint) //self sent to
   }
 
   override def receive: Receive = {
-    case Bound ⇒
+    case Bound(address) ⇒
       println("Bound")
       listener = sender()
-      listener ! ResumeAccepting
+      println(s"listner set to ${listener}")
+      listener ! ResumeAccepting(1)
     case Connected(remoteAddress, localAddress) ⇒
       val connection = sender()
-      context.actorOf(Props(new TcpConnectionHandler(connection, remoteAddress)))
+      numberOfConnections += 1
+      context.actorOf(Props(new TcpConnectionHandler(connection, remoteAddress)), s"tcpConnectionhander${numberOfConnections}")
+      println(s"listner is ${listener}")
+      listener ! ResumeAccepting(1)
+    case a@ _ ⇒ println(s"_______________Unhandled message_______________${a}")
   }
 }

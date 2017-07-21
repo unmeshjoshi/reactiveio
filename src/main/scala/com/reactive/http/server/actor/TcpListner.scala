@@ -5,9 +5,8 @@ import java.nio.channels.{SelectionKey, ServerSocketChannel}
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.dispatch.{RequiresMessageQueue, UnboundedMessageQueueSemantics}
-import akka.io.Tcp.Bound
 import com.reactive.http.server.actor.SelectionHandler.ChannelAcceptable
-import com.reactive.http.server.actor.TcpManager.{Bind, RegisterIncomingConnection, ResumeAccepting}
+import com.reactive.http.server.actor.TcpManager.{Bind, Bound, RegisterIncomingConnection, ResumeAccepting}
 
 import scala.annotation.tailrec
 import scala.util.control.NonFatal
@@ -26,8 +25,8 @@ class TcpListner(selectionHandler: ActorRef,
 
   override def receive: Receive = {
     case registration: ChannelRegistration ⇒
-      println("Server channel registered")
-      bindCommander ! Bound(serverSocketChannel.socket.getLocalSocketAddress.asInstanceOf[InetSocketAddress])
+      println("Server channel registered. Sending Bound Event")
+      bind.handler ! Bound(serverSocketChannel.socket.getLocalSocketAddress.asInstanceOf[InetSocketAddress])
       context.become(bound(registration))
   }
 
@@ -49,10 +48,13 @@ class TcpListner(selectionHandler: ActorRef,
 
   def bound(registration: ChannelRegistration): Receive = {
     case ResumeAccepting(batchSize) ⇒
+      println("Resuming accepting connections")
       registration.enableInterest(SelectionKey.OP_ACCEPT)
 
     case ChannelAcceptable ⇒
-      acceptAllPending(registration, 10)
+      acceptAllPending(registration, 1)
+      registration.enableInterest(SelectionKey.OP_ACCEPT)
+
   }
 }
 

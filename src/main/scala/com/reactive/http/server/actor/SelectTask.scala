@@ -13,7 +13,7 @@ class SelectTask(val executionContext: ExecutionContext, selector: Selector) ext
   final val OP_READ_AND_WRITE = OP_READ | OP_WRITE // compile-time constant
 
   def tryRun(): Unit = {
-    println("running selector loop")
+    println(s"running selector loop ${selector.keys()}")
     if (selector.select() > 0) { // This assumes select return value == selectedKeys.size
       val keys = selector.selectedKeys
       val iterator = keys.iterator()
