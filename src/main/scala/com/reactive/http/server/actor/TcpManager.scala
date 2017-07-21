@@ -1,7 +1,7 @@
 package com.reactive.http.server.actor
 
 import java.net.InetSocketAddress
-import java.nio.channels.SocketChannel
+import java.nio.channels.{SelectionKey, SocketChannel}
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.util.ByteString
@@ -57,12 +57,15 @@ object TcpManager {
   }
 
   case object CloseCommand extends Command
+
   case object ConnectionClosed extends Event
+
 }
 
 //this is just to make it map easily to akka.io.
 abstract class SelectorBasedManager() extends Actor {
   val selectorPool = context.actorOf(Props(new SelectionHandler))
+
   def selector = selectorPool
 }
 
@@ -111,13 +114,13 @@ class ServerActor(val endpoint: InetSocketAddress) extends Actor {
       println("Bound")
       listener = sender()
       println(s"listner set to ${listener}")
-      listener ! ResumeAccepting(1)
+
     case Connected(remoteAddress, localAddress) ⇒
       val connection = sender()
       numberOfConnections += 1
       context.actorOf(Props(new TcpConnectionHandler(connection, remoteAddress)), s"tcpConnectionhander${numberOfConnections}")
       println(s"listner is ${listener}")
       listener ! ResumeAccepting(1)
-    case a@ _ ⇒ println(s"_______________Unhandled message_______________${a}")
+    case a@_ ⇒ println(s"_______________Unhandled message_______________${a}")
   }
 }

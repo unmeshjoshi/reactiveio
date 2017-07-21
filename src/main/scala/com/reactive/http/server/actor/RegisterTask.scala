@@ -39,6 +39,7 @@ class RegisterTask(context: ExecutionContext, selector: AbstractSelector, channe
               if (newOps != currentOps) key.interestOps(newOps)
           }
         )
+        selector.wakeup() //because its the same context, we need to
       }
     }
     def disableInterestOps(key: SelectionKey, ops: Int): Unit = ???

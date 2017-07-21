@@ -48,7 +48,7 @@ class SelectTask(val executionContext: ExecutionContext, selector: Selector) ext
   }
 
   override def run(): Unit = {
-    println("Running")
+    println("Running Selector Event Loop")
 
     if (selector.isOpen) {
       try {

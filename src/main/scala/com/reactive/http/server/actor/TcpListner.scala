@@ -9,7 +9,6 @@ import com.reactive.http.server.actor.SelectionHandler.ChannelAcceptable
 import com.reactive.http.server.actor.TcpManager.{Bind, Bound, RegisterIncomingConnection, ResumeAccepting}
 
 import scala.annotation.tailrec
-import scala.util.control.NonFatal
 
 class TcpListner(selectionHandler: ActorRef,
                  channelRegistry: ChannelRegistry,
@@ -47,14 +46,13 @@ class TcpListner(selectionHandler: ActorRef,
   }
 
   def bound(registration: ChannelRegistration): Receive = {
-    case ResumeAccepting(batchSize) ⇒
+    case ResumeAccepting(batchSize) ⇒ {
       println("Resuming accepting connections")
       registration.enableInterest(SelectionKey.OP_ACCEPT)
-
-    case ChannelAcceptable ⇒
+    }
+    case ChannelAcceptable ⇒ {
       acceptAllPending(registration, 1)
-      registration.enableInterest(SelectionKey.OP_ACCEPT)
-
+    }
   }
 }
 
