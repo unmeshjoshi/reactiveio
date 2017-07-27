@@ -3,8 +3,8 @@ package com.reactive.http.server.actor
 import java.nio.channels.SelectableChannel
 import java.nio.channels.spi.{AbstractSelector, SelectorProvider}
 
-import akka.actor.{Actor, ActorRef, NoSerializationVerificationNeeded, Props}
-import com.reactive.http.server.actor.TcpManager.{Bind, RegisterIncomingConnection}
+import akka.actor.{Actor, ActorRef, NoSerializationVerificationNeeded}
+import com.reactive.http.server.actor.TcpManager.SelectionHandlerWorkerCommand
 
 import scala.concurrent.ExecutionContext
 
@@ -67,14 +67,7 @@ class SelectionHandler extends Actor {
   }
 
   override def receive: Receive = {
-    case b: Bind ⇒
-      println("SelectionHandler bind Creating TcpListner")
-      val bindCommander = sender()
-      context.actorOf(Props(new TcpListner(self, registry, bindCommander, b)))
-    //in case of akka http these are sent as worker commands ⇒
-    //create tcplistner
-    //      println("in SelectionHandler")
-    case RegisterIncomingConnection(channel, props) ⇒ context.actorOf(props(registry)) //creation of incoming connection
+    case SelectionHandlerWorkerCommand(props) ⇒ context.actorOf(props(registry)) //creation of incoming connection
   }
 }
 

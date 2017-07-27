@@ -84,7 +84,10 @@ object Writer {
       }
       try {
         val next = writeToChannel(remainingData)
-        if (next ne EmptyPendingWrite) registration.map(_.enableInterest(OP_WRITE))
+        if (next ne EmptyPendingWrite) registration.map( reg ⇒ {
+          println("Enabling write interest")
+          reg.enableInterest(OP_WRITE)
+        })
         next
       } catch {
         case e: IOException ⇒ this

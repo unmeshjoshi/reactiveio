@@ -6,7 +6,7 @@ import java.nio.channels.{SelectionKey, ServerSocketChannel}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.dispatch.{RequiresMessageQueue, UnboundedMessageQueueSemantics}
 import com.reactive.http.server.actor.SelectionHandler.ChannelAcceptable
-import com.reactive.http.server.actor.TcpManager.{Bind, Bound, RegisterIncomingConnection, ResumeAccepting}
+import com.reactive.http.server.actor.TcpManager.{Bind, Bound, SelectionHandlerWorkerCommand, ResumeAccepting}
 
 import scala.annotation.tailrec
 
@@ -39,7 +39,7 @@ class TcpListner(selectionHandler: ActorRef,
       def props(registry: ChannelRegistry) =
         Props(classOf[TcpIncomingConnection], socketChannel, channelRegistry, bind.handler)
 
-      selectionHandler ! RegisterIncomingConnection(socketChannel, props)
+      selectionHandler ! SelectionHandlerWorkerCommand(props)
 
       acceptAllPending(registration, limit - 1)
     }

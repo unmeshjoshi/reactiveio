@@ -44,6 +44,7 @@ class TcpIncomingConnection(channel: SocketChannel,
 
   def handleWriteMessages(registration: ChannelRegistration, handler: ActorRef): Receive = {
     case ChannelWritable ⇒
+      println("Channel is writable")
       doWrite(handler)
     case write: WriteCommand ⇒
       println(s"Accepting ${write}")

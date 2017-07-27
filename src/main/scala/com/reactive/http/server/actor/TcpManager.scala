@@ -1,9 +1,9 @@
 package com.reactive.http.server.actor
 
 import java.net.InetSocketAddress
-import java.nio.channels.{SelectionKey, SocketChannel}
 
 import akka.actor.{Actor, ActorRef, Props}
+import akka.io.Tcp.ConnectionClosed
 import akka.util.ByteString
 import com.reactive.http.parser.HttpRequestParser
 import com.reactive.http.server.actor.TcpManager._
@@ -23,7 +23,7 @@ object TcpManager {
 
   final case class ResumeAccepting(batchSize: Int) extends Command
 
-  final case class RegisterIncomingConnection(socketChannel: SocketChannel, props: (ChannelRegistry) ⇒ Props) extends Command with Event
+  final case class SelectionHandlerWorkerCommand(props: (ChannelRegistry) ⇒ Props) extends Command with Event
 
   final case class Register(handler: ActorRef, keepOpenOnPeerClosed: Boolean = false, useResumeWriting: Boolean = true) extends Command
 
@@ -42,6 +42,7 @@ object TcpManager {
 
 
   case class NoAck(token: Any) extends Event
+  case object WriteAck extends Event
 
   /**
     * Default [[NoAck]] instance which is used when no acknowledgment information is
@@ -73,11 +74,17 @@ class TcpManager extends SelectorBasedManager {
 
   import TcpManager._
 
+
   override def receive: Receive = {
-    case b@Bind(handler, localAddress) ⇒ {
+    case b:Bind ⇒ {
       println("Binding")
+
       val commander = sender()
-      selector ! Bind(commander, localAddress)
+
+      def props(registry: ChannelRegistry) =
+        Props(classOf[TcpListner], selector, registry, commander, b)
+
+      selectorPool ! SelectionHandlerWorkerCommand(props)
     }
   }
 }
@@ -93,8 +100,12 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
     case Received(data) ⇒
       val httpRequest = new HttpRequestParser().parseMessage(data) //TODO: make httprequestparser stateful
       println(s"Read http request $httpRequest")
-      connection ! Write(ByteString(s"Hello World Of NIO! Handling ${httpRequest}")) //this will be written by HttpResponse in bidi flow
+      connection ! Write(ByteString(s"HTTP/1.1 200 OK \r\n Connection: close \r\n")) //this will be written by HttpResponse in bidi flow
+//      connection ! CloseCommand
+    case "close" =>
       connection ! CloseCommand
+    case _: ConnectionClosed =>
+      context stop self
   }
 }
 
