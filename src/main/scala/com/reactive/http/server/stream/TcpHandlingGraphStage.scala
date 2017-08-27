@@ -82,6 +82,7 @@ class TcpStreamLogic(val shape: FlowShape[ByteString, ByteString], connection: A
 
   val readHandler = new OutHandler {
     override def onPull(): Unit = {
+      println("Resuming reading from connection")
       connection ! ResumeReading
     }
   }
@@ -89,6 +90,7 @@ class TcpStreamLogic(val shape: FlowShape[ByteString, ByteString], connection: A
   val writeHandler = new InHandler {
     override def onPush(): Unit = {
       val elem = grab(bytesIn)
+      println(s"Writing ${elem}")
       connection ! Write(elem.asInstanceOf[ByteString], WriteAck)
     }
   }
@@ -99,6 +101,7 @@ class TcpStreamLogic(val shape: FlowShape[ByteString, ByteString], connection: A
   setHandler(bytesIn, writeHandler)
 
   override def preStart(): Unit = {
+    println("TCPStreamLogic prestart")
     getStageActor(connected).watch(connection)
     connection ! Register(self, keepOpenOnPeerClosed = true, useResumeWriting = false)
     pull(bytesIn)
@@ -112,6 +115,12 @@ class TcpStreamLogic(val shape: FlowShape[ByteString, ByteString], connection: A
       case Received(data)⇒
         push(bytesOut, data)
       case WriteAck ⇒ if (!isClosed(bytesIn)) pull(bytesIn)
+      case c: Connected ⇒
+        setHandler(bytesOut, readHandler)
+        stageActor.watch(connection)
+        if (isAvailable(bytesOut)) connection ! ResumeReading
+        pull(bytesIn)
+
     }
   }
 }
@@ -132,6 +141,7 @@ private class IncomingConnectionStage(connection: ActorRef, remoteAddress: InetS
     if (hasBeenCreated.get) throw new IllegalStateException("Cannot materialize an incoming connection Flow twice.")
     hasBeenCreated.set(true)
 
+    println("Creating TcpStreamLogic")
     new TcpStreamLogic(shape, connection, remoteAddress)
   }
 

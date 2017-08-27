@@ -3,6 +3,7 @@ package com.reactive.http.server.stream
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorSystem, Props}
+import akka.dispatch.ExecutionContexts
 import akka.stream._
 import akka.stream.scaladsl.{BidiFlow, Flow, Keep, RunnableGraph, Sink, Source}
 import akka.util.ByteString
@@ -32,10 +33,9 @@ object Server {
     val tcpManager = system.actorOf(Props(new TcpManager), "tcpManager") //TODO: this should be moved to actorsystem extension
     val source: Source[TcpStream.IncomingConnection, Future[TcpStream.ServerBinding]] = Source.fromGraph(new TcpHandlingGraphStage(tcpManager, new InetSocketAddress("localhost", 5555)))
     source.mapAsyncUnordered(10) { incoming ⇒
+      println(s"Running ${incoming}")
       val joinedFlow: Flow[Any, HttpRequest, NotUsed] = parsingRendering.joinMat(incoming.flow)(Keep.left)
       RunnableGraph(joinedFlow.traversalBuilder).run()
-    }
-      .to(Sink.ignore)
-      .run()
+    }.to(Sink.ignore).run()
   }
 }
