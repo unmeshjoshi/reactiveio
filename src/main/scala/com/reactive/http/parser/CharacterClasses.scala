@@ -4,7 +4,7 @@ package com.reactive.http.parser
 import akka.parboiled2.CharPredicate
 
 // efficient encoding of *7-bit* ASCII characters
-private object CharacterClasses {
+object CharacterClasses {
 
   // http://tools.ietf.org/html/rfc7230#section-1.2 referencing
   // http://tools.ietf.org/html/rfc5234#appendix-B.1
