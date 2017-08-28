@@ -102,8 +102,9 @@ class TcpStreamLogic(val shape: FlowShape[ByteString, ByteString], connection: A
 
   override def preStart(): Unit = {
     println("TCPStreamLogic prestart")
-    getStageActor(connected).watch(connection)
-    connection ! Register(self, keepOpenOnPeerClosed = true, useResumeWriting = false)
+    val actor: GraphStageLogic.StageActor = getStageActor(connected)
+    actor.watch(connection)
+    connection ! Register(actor.ref, keepOpenOnPeerClosed = true, useResumeWriting = false)
     pull(bytesIn)
   }
 

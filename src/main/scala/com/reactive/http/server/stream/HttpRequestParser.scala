@@ -26,10 +26,9 @@ class HttpRequestParser extends GraphStage[FlowShape[ByteString, HttpRequest]] {
   override def shape = FlowShape.of(in, out)
 
   override def createLogic(inheritedAttributes: Attributes) = new GraphStageLogic(shape) with InHandler with OutHandler {
+    setHandler(in, this)
+    setHandler(out, this)
 
-    override def preStart(): Unit = {
-      pull(in)
-    }
     override def onPush(): Unit = {
       val byteString = grab(in)
       val parserOutput = parseMessage(byteString)
