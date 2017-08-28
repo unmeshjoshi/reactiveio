@@ -5,17 +5,18 @@ import akka.stream.{Attributes, FlowShape, Inlet, Outlet}
 import akka.util.ByteString
 
 
-object HttpResponseRenderer extends GraphStage[FlowShape[Any, ByteString]] {
-  val in = Inlet[Any]("HttpResponseRenderer.in")
+object HttpResponseRenderer extends GraphStage[FlowShape[ByteString, ByteString]] {
+  val in = Inlet[ByteString]("HttpResponseRenderer.in")
   val out = Outlet[ByteString]("HttpResponseRenderer.out")
-  val shape: FlowShape[Any, ByteString] = FlowShape(in, out)
+  val shape: FlowShape[ByteString, ByteString] = FlowShape(in, out)
 
   def createLogic(inheritedAttributes: Attributes): GraphStageLogic =
     new GraphStageLogic(shape) {
       setHandler(in, new InHandler {
 
-        def render(value: Any): Unit = {
-          push(out, ByteString("Hellow Streaming World!")) //this is where the the response is renderered.
+        def render(value: ByteString): Unit = {
+          println(s"Writing ${value}")
+          push(out, value) //this is where the the response is renderered.
         }
 
 
