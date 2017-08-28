@@ -4,6 +4,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorRef
+import akka.io.Tcp.Close
 import akka.stream._
 import akka.stream.scaladsl.Flow
 import akka.stream.stage._
@@ -93,8 +94,12 @@ class TcpStreamLogic(val shape: FlowShape[ByteString, ByteString], connection: A
       println(s"Writing ${elem}")
       connection ! Write(elem.asInstanceOf[ByteString], WriteAck)
     }
-  }
 
+    override def onUpstreamFinish(): Unit = {
+      println("Closing connection now")
+      connection ! CloseCommand
+    }
+  }
 
   // No reading until role have been decided
   setHandler(bytesOut, readHandler)

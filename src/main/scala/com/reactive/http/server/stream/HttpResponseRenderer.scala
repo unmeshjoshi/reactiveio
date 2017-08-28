@@ -17,6 +17,7 @@ object HttpResponseRenderer extends GraphStage[FlowShape[ByteString, ByteString]
         def render(value: ByteString): Unit = {
           println(s"Writing ${value}")
           push(out, value) //this is where the the response is renderered.
+          completeStage()
         }
 
 

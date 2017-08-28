@@ -50,6 +50,7 @@ class TcpIncomingConnection(channel: SocketChannel,
       println(s"Accepting ${write}")
       pendingWrite = Writer.PendingWrite(sender(), write, channel, Some(registration))
       if (writePending) doWrite(handler)
+    case close:CloseCommand ⇒ channel.close()
   }
 
   def writePending = pendingWrite ne EmptyPendingWrite

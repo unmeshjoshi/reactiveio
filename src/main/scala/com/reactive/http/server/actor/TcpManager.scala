@@ -3,7 +3,6 @@ package com.reactive.http.server.actor
 import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, Props}
-import akka.io.Tcp.ConnectionClosed
 import akka.util.ByteString
 import com.reactive.http.parser.HttpRequestParser
 import com.reactive.http.server.actor.TcpManager._
@@ -35,8 +34,11 @@ object TcpManager {
 
   case object SuspendReading extends Command
 
-
   sealed abstract class WriteCommand extends Command
+
+  case class CloseCommand() extends Command
+
+  case object ConnectionClosed extends Event
 
   final case class Write(data: ByteString, ack: Event) extends WriteCommand
 
@@ -56,10 +58,6 @@ object TcpManager {
     def apply(data: ByteString): Write =
       if (data.isEmpty) empty else Write(data, NoAck)
   }
-
-  case object CloseCommand extends Command
-
-  case object ConnectionClosed extends Event
 
 }
 
@@ -101,11 +99,9 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
       val httpRequest = new HttpRequestParser().parseMessage(data) //TODO: make httprequestparser stateful
       println(s"Read http request $httpRequest")
       connection ! Write(ByteString(s"HTTP/1.1 200 OK \r\n Connection: close \r\n")) //this will be written by HttpResponse in bidi flow
-//      connection ! CloseCommand
+
     case "close" =>
       connection ! CloseCommand
-    case _: ConnectionClosed =>
-      context stop self
   }
 }
 
