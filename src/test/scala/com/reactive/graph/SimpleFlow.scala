@@ -3,8 +3,7 @@ package com.reactive.graph
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.impl.fusing.GraphStages
-import akka.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
+import akka.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink}
 
 import scala.concurrent.Future
 

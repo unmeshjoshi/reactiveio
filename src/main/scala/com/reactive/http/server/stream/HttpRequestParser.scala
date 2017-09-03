@@ -41,7 +41,7 @@ class HttpRequestParser extends GraphStage[FlowShape[ByteString, HttpRequest]] {
       output match {
         case StreamEnd ⇒ completeStage()
         case NeedMoreData ⇒ pull(in)
-        case x ⇒ push(out, x.asInstanceOf[HttpRequest])
+        case httpRequest: HttpRequest ⇒ push(out, httpRequest)
       }
     }
 
@@ -50,15 +50,25 @@ class HttpRequestParser extends GraphStage[FlowShape[ByteString, HttpRequest]] {
 
     import HttpMethods._
 
+    def parseMessage(input: ByteString): HttpRequest = {
+      var cursor = parseMethod(input, 0)
+      cursor = parseRequestTarget(input, cursor)
+      model.HttpRequest(method, uri)
+    }
+
     def parseMethod(input: ByteString, cursor: Int): Int = {
-      @tailrec def parseMethod(meth: HttpMethod, ix: Int = 1): Int =
-        if (ix == meth.value.length)
+
+      @tailrec def parseMethod(httpMethod: HttpMethod, ix: Int = 1): Int = {
+        if (ix == httpMethod.value.length) {
           if (byteChar(input, cursor + ix) == ' ') {
-            method = meth
+            method = httpMethod
             cursor + ix + 1
           } else throw new RuntimeException("Invalid method")
-        else if (byteChar(input, cursor + ix) == meth.value.charAt(ix)) parseMethod(meth, ix + 1)
+        }
+        else if (byteChar(input, cursor + ix) == httpMethod.value.charAt(ix)) parseMethod(httpMethod, ix + 1)
         else throw new RuntimeException("Invalid method")
+      }
+
       (byteChar(input, cursor): @switch) match {
         case 'G' ⇒ parseMethod(GET)
         case 'P' ⇒ byteChar(input, cursor + 1) match {
@@ -76,26 +86,19 @@ class HttpRequestParser extends GraphStage[FlowShape[ByteString, HttpRequest]] {
       }
     }
 
-    def parseMessage(input: ByteString): HttpRequest = {
-      var cursor = parseMethod(input, 0)
-      cursor = parseRequestTarget(input, cursor)
-      model.HttpRequest(method, uri)
-    }
-
-    val maxUriLength = 2048 //2k in akka settings
-
     def parseRequestTarget(input: ByteString, cursor: Int): Int = {
 
       val uriStart = cursor
       val uriEndLimit = cursor + maxUriLength
 
-      @tailrec def findUriEnd(ix: Int = cursor): Int =
+      @tailrec def findUriEnd(ix: Int = cursor): Int = {
         if (ix == input.length) throw NotEnoughDataException
         else if (CharacterClasses.WSPCRLF(input(ix).toChar)) ix
         else if (ix < uriEndLimit) findUriEnd(ix + 1)
         else throw new ParsingException(
           RequestUriTooLong,
-          "URI length exceeds the configured limit of $maxUriLength characters")
+          s"URI length exceeds the configured limit of $maxUriLength characters")
+      }
 
       val uriEnd = findUriEnd()
       try {
@@ -106,6 +109,8 @@ class HttpRequestParser extends GraphStage[FlowShape[ByteString, HttpRequest]] {
       }
       uriEnd + 1
     }
+
+    val maxUriLength = 2048 //2k in akka settings
   }
 }
 

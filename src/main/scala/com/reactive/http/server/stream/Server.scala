@@ -7,11 +7,10 @@ import akka.stream._
 import akka.stream.scaladsl.{BidiFlow, Flow, Keep, Sink, Source}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
-import com.reactive.http.model.HttpRequest
+import com.reactive.http.model.{HttpRequest, HttpResponse}
 import com.reactive.http.server.actor.TcpManager
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
+import scala.concurrent.Future
 
 
 object Server {
@@ -22,14 +21,49 @@ object Server {
     requestParsingFlow
   }
 
-  def rendering(): Flow[ByteString, ByteString, NotUsed] = {
-    val renderer = HttpResponseRenderer
+  def rendering(): Flow[HttpResponse, ByteString, NotUsed] = Flow[HttpResponse].via(HttpResponseRenderer)
+
+  def bindAndHandle(handler: HttpRequest ⇒ HttpResponse, endpoint: InetSocketAddress)(implicit materializer: Materializer): Unit = {
+
+    val handlerFlow: Flow[HttpRequest, HttpResponse, Future[Done]] = Flow[HttpRequest].map(handler).watchTermination()(Keep.right)
+
+    val parsingRendering: BidiFlow[HttpResponse, ByteString, ByteString, HttpRequest, NotUsed] = BidiFlow.fromFlows(rendering(), parsing())
+
+    /**
+      *
+      * +--------------------------------------+
+      * | Resulting Flow                       |
+      * |                                      |
+      * | +------+                   +------+  |
+      * | |      | ~HttpResponse~>   |      | ~~> ByteString
+      * | | flow |                   | bidi |  |
+      * | |      | <~HttpRequest~    |      | <~~ ByteString
+      * | +------+                   +------+  |
+      * +--------------------------------------+
+      *
+      */
+    val finalFlow: Flow[ByteString, ByteString, Future[Done]] = handlerFlow.join(parsingRendering)
+
+    val system = ActorSystem("Server")
+    val tcpManager = system.actorOf(Props(new TcpManager), "tcpManager")
+
+    val source: Source[TcpStream.IncomingConnection, Future[TcpStream.ServerBinding]] = Source.fromGraph(new TcpHandlingGraphStage(tcpManager, endpoint))
+
+    val mapedAsyncSource: Source[Done, Future[TcpStream.ServerBinding]] = source.mapAsyncUnordered(10)(incomingConnection ⇒ finalFlow.join(incomingConnection.flow).run)
+
+    mapedAsyncSource.runWith(Sink.ignore)
+  }
+
+  /*def rendering(): Flow[ByteString, ByteString, NotUsed] = {
+    val renderer = HttpResponseRendererStale
     val renderingFlow = Flow[ByteString].via(renderer)
     renderingFlow
   }
 
-  def bindAndHandle(handler:   HttpRequest ⇒ ByteString, endpoint:InetSocketAddress)(implicit materializer:Materializer): Unit = {
+  def bindAndHandle(handler: HttpRequest ⇒ ByteString, endpoint: InetSocketAddress)(implicit materializer:Materializer): Unit = {
+
     val handlerFlow: Flow[HttpRequest, ByteString, NotUsed] = Flow[HttpRequest].map(handler)
+
     val parsingRendering: BidiFlow[ByteString, ByteString, ByteString, HttpRequest, NotUsed] = BidiFlow.fromFlows(rendering(), parsing())
 
     val resultFlow: Flow[ByteString, ByteString, Future[Done]] = fuzeServerFlow(handlerFlow, parsingRendering)
@@ -54,11 +88,12 @@ object Server {
   }
 
   def fuzeServerFlow(handlerFlow: Flow[HttpRequest, ByteString, NotUsed], parsingRendering: BidiFlow[ByteString, ByteString, ByteString, HttpRequest, NotUsed]) = {
-    val flowFromHandler = Flow[HttpRequest]
-      .watchTermination()(Keep.right)
-      .viaMat(handlerFlow)(Keep.left)
+    val flowFromHandler: Flow[HttpRequest, ByteString, Future[Done]] =
+      Flow[HttpRequest]
+        .watchTermination()(Keep.right)
+        .viaMat(handlerFlow)(Keep.left)
 
     val resultFlow: Flow[ByteString, ByteString, Future[Done]] = flowFromHandler.joinMat(parsingRendering)(Keep.left)
     resultFlow
-  }
+  }*/
 }

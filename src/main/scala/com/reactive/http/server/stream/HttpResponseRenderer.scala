@@ -1,31 +1,30 @@
 package com.reactive.http.server.stream
 
-import akka.stream.stage.{GraphStage, GraphStageLogic, InHandler, OutHandler}
 import akka.stream.{Attributes, FlowShape, Inlet, Outlet}
+import akka.stream.stage.{GraphStage, GraphStageLogic, InHandler, OutHandler}
 import akka.util.ByteString
+import com.reactive.http.model.HttpResponse
 
+object HttpResponseRenderer extends GraphStage[FlowShape[HttpResponse, ByteString]] {
+  override def shape = FlowShape(in, out)
+  private val in: Inlet[HttpResponse] = Inlet[HttpResponse]("HttpResponseRenderer.in")
+  private val out: Outlet[ByteString] = Outlet[ByteString]("HttpResponseRenderer.out")
 
-object HttpResponseRenderer extends GraphStage[FlowShape[ByteString, ByteString]] {
-  val in = Inlet[ByteString]("HttpResponseRenderer.in")
-  val out = Outlet[ByteString]("HttpResponseRenderer.out")
-  val shape: FlowShape[ByteString, ByteString] = FlowShape(in, out)
-
-  def createLogic(inheritedAttributes: Attributes): GraphStageLogic =
+  override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = {
     new GraphStageLogic(shape) {
-      setHandler(in, new InHandler {
 
-        def render(value: ByteString): Unit = {
-          println(s"Writing ${value}")
-          push(out, value) //this is where the the response is renderered.
+      setHandler(in, new InHandler {
+        override def onPush(): Unit = {
+          val httpResponse: HttpResponse = grab(in)
+          val resultValue = ByteString(httpResponse.response)
+          push(out, resultValue) // this is where the response is rendered
           completeStage()
         }
-
-
-        override def onPush(): Unit = render(grab(in))
       })
-      val waitForDemandHandler = new OutHandler {
-        def onPull(): Unit = pull(in)
-      }
-      setHandler(out, waitForDemandHandler)
+
+      setHandler(out, new OutHandler {
+        override def onPull(): Unit = pull(in)
+      })
     }
+  }
 }

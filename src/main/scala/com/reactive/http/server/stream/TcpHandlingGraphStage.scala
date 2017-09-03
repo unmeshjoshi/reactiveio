@@ -4,7 +4,6 @@ import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorRef
-import akka.io.Tcp.Close
 import akka.stream._
 import akka.stream.scaladsl.Flow
 import akka.stream.stage._
