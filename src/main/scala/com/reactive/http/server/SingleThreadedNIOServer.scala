@@ -75,8 +75,6 @@ object SingleThreadedNIOServer extends App {
     val httpRequest = key.attachment().asInstanceOf[com.reactive.http.model.HttpRequest]
 
     println(s"Writing response for ${httpRequest}")
-
-//    val response = s"Hello NIO World from ${httpRequest.target} \r\n"
     val response = "HTTP/1.1 200 OK\r\n Content-Length: 38\r\n Content-Type: text/html\r\n \r\n <html><body>Hello World!</body></html>"
     socketChannel.write(ByteBuffer.wrap(response.getBytes("UTF-8")))
     socketChannel.close()

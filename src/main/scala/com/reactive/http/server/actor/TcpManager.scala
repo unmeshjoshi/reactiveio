@@ -98,7 +98,8 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
     case Received(data) ⇒
       val httpRequest = new HttpRequestParser().parseMessage(data) //TODO: make httprequestparser stateful
       println(s"Read http request $httpRequest")
-      connection ! Write(ByteString(s"HTTP/1.1 200 OK \r\n Connection: close \r\n")) //this will be written by HttpResponse in bidi flow
+      connection ! Write(ByteString(s"HTTP/1.1 200 OK \r\n")) //this will be written by HttpResponse in bidi flow
+      self ! "close"
 
     case "close" =>
       connection ! CloseCommand
