@@ -49,11 +49,14 @@ object Server {
 
     val source: Source[TcpStream.IncomingConnection, Future[TcpStream.ServerBinding]] = Source.fromGraph(new TcpHandlingGraphStage(tcpManager, endpoint))
 
-    val mapedAsyncSource: Source[Done, Future[TcpStream.ServerBinding]] = source.mapAsyncUnordered(10)(
-      incomingConnection ⇒ finalFlow.join(incomingConnection.flow).run
+    val mappedAsyncSource: Source[Done, Future[TcpStream.ServerBinding]] = source.mapAsyncUnordered(1024)(
+      (incomingConnection: TcpStream.IncomingConnection) ⇒ {
+        val materializedValue: Future[Done] = finalFlow.join(incomingConnection.flow).run()
+        materializedValue
+      }
     )
 
-    mapedAsyncSource.runWith(Sink.ignore)
+    mappedAsyncSource.runWith(Sink.ignore)
   }
 
   /*def rendering(): Flow[ByteString, ByteString, NotUsed] = {
