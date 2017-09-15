@@ -50,17 +50,26 @@ object SingleThreadedNIOServer extends App {
     val selectableChannel = key.channel().asInstanceOf[ServerSocketChannel]
     val socketChannel = selectableChannel.accept()
     socketChannel.configureBlocking(false)
-    socketChannel.register(selector, SelectionKey.OP_READ)
+    val httpParser = new HttpRequestParser()
+    socketChannel.register(selector, SelectionKey.OP_READ, httpParser)
   }
 
   def read(key: SelectionKey) = {
     val socketChannel = key.channel().asInstanceOf[SocketChannel]
     val byteString = readFromSocket(socketChannel)
+    val httpParser = key.attachment().asInstanceOf[HttpRequestParser]
 
-    val httpRequest = new HttpRequestParser().parseMessage(byteString) //TODO: make httprequestparser stateful
-    println(s"Read http request $httpRequest")
+    val httpRequest = httpParser.parseBytes(byteString) //TODO: make httprequestparser stateful
+    httpRequest match {
+      case null ⇒ {
+        socketChannel.register(selector, SelectionKey.OP_READ, httpRequest)
 
-    socketChannel.register(selector, SelectionKey.OP_WRITE, httpRequest)
+      }
+      case _ ⇒ {
+        println(s"Read http request $httpRequest")
+        socketChannel.register(selector, SelectionKey.OP_WRITE, httpRequest)
+       }
+    }
   }
 
   private def readFromSocket(socketChannel: SocketChannel) = {
@@ -75,7 +84,16 @@ object SingleThreadedNIOServer extends App {
     val httpRequest = key.attachment().asInstanceOf[com.reactive.http.model.HttpRequest]
 
     println(s"Writing response for ${httpRequest}")
-    val response = "HTTP/1.1 200 OK\r\n Content-Length: 38\r\n Content-Type: text/html\r\n \r\n <html><body>Hello World!</body></html>"
+
+    val response =
+      """HTTP/1.1 200 OK
+        |Server: nio-singlethreaded/1.0.0
+        |Date: Sun, 25 Sept 2017 10:12:32 GMT
+        |Connection: close
+        |Content-Type: application/json
+        |
+        |Hello World Of Streaming""".stripMargin.replace("\r\n", "\n").replace("\n", "\r\n")
+
     socketChannel.write(ByteBuffer.wrap(response.getBytes("UTF-8")))
     socketChannel.close()
   }

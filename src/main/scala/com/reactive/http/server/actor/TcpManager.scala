@@ -96,7 +96,7 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
 
   override def receive: Receive = {
     case Received(data) ⇒
-      val httpRequest = new HttpRequestParser().parseMessage(data) //TODO: make httprequestparser stateful
+      val httpRequest = new HttpRequestParser().parseMessage(data, 0) //TODO: make httprequestparser stateful
       println(s"Read http request $httpRequest")
       connection ! Write(ByteString(s"HTTP/1.1 200 OK \r\n")) //this will be written by HttpResponse in bidi flow
       self ! "close"

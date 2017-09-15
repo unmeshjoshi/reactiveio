@@ -96,7 +96,6 @@ class HttpRequestParser extends GraphStage[FlowShape[ByteString, HttpRequest]] {
         else if (CharacterClasses.WSPCRLF(input(ix).toChar)) ix
         else if (ix < uriEndLimit) findUriEnd(ix + 1)
         else throw new ParsingException(
-          RequestUriTooLong,
           s"URI length exceeds the configured limit of $maxUriLength characters")
       }
 
@@ -105,7 +104,7 @@ class HttpRequestParser extends GraphStage[FlowShape[ByteString, HttpRequest]] {
         val uriBytes = input.slice(uriStart, uriEnd)
         uri = Uri.parseHttpRequestTarget(new ByteStringParserInput(uriBytes), mode = Uri.ParsingMode.Strict)
       } catch {
-        case IllegalUriException(info) ⇒ throw new ParsingException(BadRequest, info)
+        case IllegalUriException(info) ⇒ throw new ParsingException("illegal uri exception")
       }
       uriEnd + 1
     }

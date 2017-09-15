@@ -1,10 +1,8 @@
 package com.reactive.http.parser
 
-import akka.event.LoggingAdapter
 import akka.http.impl.util.ByteStringParserInput
-import akka.http.scaladsl.model.StatusCodes.{BadRequest, RequestUriTooLong}
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.settings.ParserSettings
+import akka.http.scaladsl.model.StatusCodes.BadRequest
+import akka.http.scaladsl.model.{HttpMethod, Uri}
 import akka.util.ByteString
 import com.reactive.http.model
 
@@ -12,14 +10,7 @@ import scala.annotation.{switch, tailrec}
 
 package object parsing {
 
-  class ParsingException(val status: StatusCode,
-                          val info: ErrorInfo) extends RuntimeException(info.formatPretty) {
-    def this(status: StatusCode, summary: String = "") =
-      this(status, ErrorInfo(if (summary.isEmpty) status.defaultMessage else summary))
-
-    def this(summary: String) =
-      this(StatusCodes.BadRequest, ErrorInfo(summary))
-  }
+  class ParsingException(val message:String = "") extends RuntimeException
 
   object NotEnoughDataException extends RuntimeException
 
@@ -35,22 +26,44 @@ package object parsing {
 
   def byteAt(input: ByteString, ix: Int): Byte =
     if (ix < input.length) input(ix) else throw NotEnoughDataException
-
-  def logParsingError(info: ErrorInfo, log: LoggingAdapter,
-                      setting: ParserSettings.ErrorLoggingVerbosity): Unit =
-    setting match {
-      case ParserSettings.ErrorLoggingVerbosity.Off ⇒ // nothing to do
-      case ParserSettings.ErrorLoggingVerbosity.Simple ⇒ log.warning(info.summary)
-      case ParserSettings.ErrorLoggingVerbosity.Full ⇒ log.warning(info.formatPretty)
-    }
 }
 
 class HttpRequestParser {
+  sealed trait StateResult // phantom type for ensuring soundness of our parsing method setup
+  final case class Trampoline(f: ByteString ⇒ StateResult) extends StateResult
+
+  case object NotEnoughDataException extends RuntimeException
+
+  private[this] var state: ByteString ⇒ model.HttpRequest = startNewMessage(_, 0)
+
+  protected final def continue(input: ByteString, offset: Int)(next: (ByteString, Int) ⇒ model.HttpRequest): model.HttpRequest = {
+    state =
+      math.signum(offset - input.length) match {
+        case -1 ⇒
+          val remaining = input.drop(offset)
+          more ⇒ next(remaining ++ more, 0)
+        case 0 ⇒ next(_, 0)
+        case 1 ⇒ throw new IllegalStateException
+      }
+    done()
+  }
+
+  private def done(): model.HttpRequest = null
+
+  protected final def startNewMessage(input: ByteString, offset: Int): model.HttpRequest = {
+    try {
+      val result = parseMessage(input, offset)
+      result
+    }
+    catch { case NotEnoughDataException ⇒ continue(input, offset)(startNewMessage) }
+  }
 
   import parsing._
 
   var method: HttpMethod = _
   var uri: Uri = _
+
+
 
   def parseMethod(input: ByteString, cursor: Int): Int = {
     @tailrec def parseMethod(meth: HttpMethod, ix: Int = 1): Int =
@@ -62,7 +75,7 @@ class HttpRequestParser {
       else if (byteChar(input, cursor + ix) == meth.value.charAt(ix)) parseMethod(meth, ix + 1)
       else throw new RuntimeException("Invalid method")
 
-    import HttpMethods._
+    import akka.http.scaladsl.model.HttpMethods._
     (byteChar(input, cursor): @switch) match {
       case 'G' ⇒ parseMethod(GET)
       case 'P' ⇒ byteChar(input, cursor + 1) match {
@@ -80,8 +93,13 @@ class HttpRequestParser {
     }
   }
 
-  def parseMessage(input: ByteString): model.HttpRequest = {
-    var cursor = parseMethod(input, 0)
+
+  def parseBytes(input:ByteString):model.HttpRequest = {
+    state(input)
+  }
+
+  def parseMessage(input: ByteString, offset: Int): model.HttpRequest = {
+    var cursor = parseMethod(input, offset)
     cursor = parseRequestTarget(input, cursor)
     model.HttpRequest(method, uri)
   }
@@ -98,7 +116,6 @@ class HttpRequestParser {
       else if (CharacterClasses.WSPCRLF(input(ix).toChar)) ix
       else if (ix < uriEndLimit) findUriEnd(ix + 1)
       else throw new ParsingException(
-        RequestUriTooLong,
         "URI length exceeds the configured limit of $maxUriLength characters")
 
     val uriEnd = findUriEnd()
@@ -106,7 +123,7 @@ class HttpRequestParser {
       val uriBytes = input.slice(uriStart, uriEnd)
       uri = Uri.parseHttpRequestTarget(new ByteStringParserInput(uriBytes), mode = Uri.ParsingMode.Strict)
     } catch {
-      case IllegalUriException(info) ⇒ throw new ParsingException(BadRequest, info)
+      case _ ⇒ throw new ParsingException(BadRequest.toString())
     }
     uriEnd + 1
   }
