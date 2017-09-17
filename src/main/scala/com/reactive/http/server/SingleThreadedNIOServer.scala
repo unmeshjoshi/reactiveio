@@ -6,7 +6,7 @@ import java.nio.channels.spi.{AbstractSelector, SelectorProvider}
 import java.nio.channels.{SelectionKey, ServerSocketChannel, SocketChannel}
 
 import akka.util.ByteString
-import com.reactive.http.parser.HttpRequestParser
+import com.reactive.http.parser.{HttpRequestParser, parsing}
 
 import scala.annotation.tailrec
 
@@ -59,15 +59,15 @@ object SingleThreadedNIOServer extends App {
     val byteString = readFromSocket(socketChannel)
     val httpParser = key.attachment().asInstanceOf[HttpRequestParser]
 
-    val httpRequest = httpParser.parseBytes(byteString) //TODO: make httprequestparser stateful
-    httpRequest match {
-      case null ⇒ {
-        socketChannel.register(selector, SelectionKey.OP_READ, httpRequest)
+    val messageOutput = httpParser.parseBytes(byteString) //TODO: make httprequestparser stateful
+    messageOutput match {
+      case parsing.NeedsMoreData ⇒ {
+        socketChannel.register(selector, SelectionKey.OP_READ, httpParser)
 
       }
-      case _ ⇒ {
-        println(s"Read http request $httpRequest")
-        socketChannel.register(selector, SelectionKey.OP_WRITE, httpRequest)
+      case m:parsing.HttpMessage ⇒ {
+        println(s"Read http request $messageOutput")
+        socketChannel.register(selector, SelectionKey.OP_WRITE, m.request)
        }
     }
   }
