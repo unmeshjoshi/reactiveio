@@ -8,7 +8,6 @@ import java.nio.channels.SocketChannel
 
 import akka.actor.ActorRef
 import akka.util.ByteString
-import com.reactive.http.server.actor.TcpManager.{Event, NoAck, Write, WriteCommand}
 
 import scala.annotation.tailrec
 import scala.util.control.NonFatal

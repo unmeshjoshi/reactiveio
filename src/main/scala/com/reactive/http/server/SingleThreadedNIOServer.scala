@@ -59,7 +59,7 @@ object SingleThreadedNIOServer extends App {
     val byteString = readFromSocket(socketChannel)
     val httpParser = key.attachment().asInstanceOf[HttpRequestParser]
 
-    val messageOutput = httpParser.parseBytes(byteString) //TODO: make httprequestparser stateful
+    val messageOutput = httpParser.parseBytes(byteString)
     messageOutput match {
       case parsing.NeedsMoreData ⇒ {
         socketChannel.register(selector, SelectionKey.OP_READ, httpParser)

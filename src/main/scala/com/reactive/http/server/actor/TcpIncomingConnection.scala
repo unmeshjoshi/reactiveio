@@ -9,7 +9,6 @@ import java.nio.channels.SocketChannel
 import akka.actor.{Actor, ActorRef}
 import akka.util.ByteString
 import com.reactive.http.server.actor.SelectionHandler.{ChannelReadable, ChannelWritable}
-import com.reactive.http.server.actor.TcpManager._
 import com.reactive.http.server.actor.Writer.EmptyPendingWrite
 
 import scala.annotation.tailrec

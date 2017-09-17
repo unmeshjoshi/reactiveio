@@ -8,7 +8,7 @@ import akka.stream._
 import akka.stream.scaladsl.Flow
 import akka.stream.stage._
 import akka.util.ByteString
-import com.reactive.http.server.actor.TcpManager._
+import com.reactive.http.server.actor._
 import com.reactive.http.server.stream.TcpStream.IncomingConnection
 
 import scala.concurrent.{Future, Promise}

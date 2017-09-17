@@ -4,7 +4,6 @@ import java.nio.channels.SelectableChannel
 import java.nio.channels.spi.{AbstractSelector, SelectorProvider}
 
 import akka.actor.{Actor, ActorRef, NoSerializationVerificationNeeded}
-import com.reactive.http.server.actor.TcpManager.SelectionHandlerWorkerCommand
 
 import scala.concurrent.ExecutionContext
 

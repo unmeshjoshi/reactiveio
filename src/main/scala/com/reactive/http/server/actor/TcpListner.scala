@@ -6,7 +6,6 @@ import java.nio.channels.{SelectionKey, ServerSocketChannel}
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.dispatch.{RequiresMessageQueue, UnboundedMessageQueueSemantics}
 import com.reactive.http.server.actor.SelectionHandler.ChannelAcceptable
-import com.reactive.http.server.actor.TcpManager.{Bind, Bound, SelectionHandlerWorkerCommand, ResumeAccepting}
 
 import scala.annotation.tailrec
 
