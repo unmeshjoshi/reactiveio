@@ -16,7 +16,7 @@ import scala.concurrent.Future
 object Server {
 
   def parsing(): Flow[ByteString, HttpRequest, NotUsed] = {
-    val rootParser = new HttpRequestParser()
+    val rootParser = new HttpRequestParsingStage()
     val requestParsingFlow: Flow[ByteString, HttpRequest, NotUsed] = Flow[ByteString].via(rootParser)
     requestParsingFlow
   }
