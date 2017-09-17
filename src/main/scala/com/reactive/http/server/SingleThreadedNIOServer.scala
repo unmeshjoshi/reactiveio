@@ -84,15 +84,8 @@ object SingleThreadedNIOServer extends App {
     val httpRequest = key.attachment().asInstanceOf[com.reactive.http.model.HttpRequest]
 
     println(s"Writing response for ${httpRequest}")
-
-    val response =
-      """HTTP/1.1 200 OK
-        |Server: nio-singlethreaded/1.0.0
-        |Date: Sun, 25 Sept 2017 10:12:32 GMT
-        |Connection: close
-        |Content-Type: application/json
-        |
-        |Hello World Of Streaming""".stripMargin.replace("\r\n", "\n").replace("\n", "\r\n")
+    val responseText = "Hello NIO Server"
+    val response = s"HTTP/1.1 200 OK\r\nServer: akka-http/1.0.0\r\nDate: Thu, 25 Aug 2011 09:10:29 GMT\r\nContent-Length: ${responseText.length}\r\n\r\n${responseText}"
 
     socketChannel.write(ByteBuffer.wrap(response.getBytes("UTF-8")))
     socketChannel.close()

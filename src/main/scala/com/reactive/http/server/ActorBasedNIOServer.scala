@@ -2,24 +2,27 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.util.ByteString
-import com.reactive.http.parser.HttpRequestParser
+import com.reactive.http.parser.{HttpRequestParser, parsing}
 import com.reactive.http.server.actor._
 
 //this represents a TcpStreamLogic graph stage. Handles reading from and writing to connection based on pull/push
 class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddress) extends Actor {
+  val parser = new HttpRequestParser()
   override def preStart(): Unit = {
     connection ! Register(self, keepOpenOnPeerClosed = true, useResumeWriting = false)
   }
 
   override def receive: Receive = {
     case Received(data) ⇒
-      val httpRequest = new HttpRequestParser().parseMessage(data, 0) //TODO: make httprequestparser stateful
-      println(s"Read http request $httpRequest")
-      connection ! Write(ByteString(s"HTTP/1.1 200 OK \r\n")) //this will be written by HttpResponse in bidi flow
-      self ! "close"
-
-    case "close" =>
-      connection ! CloseCommand
+      val messageOutput = parser.parseBytes(data)
+      messageOutput match {
+        case parsing.NeedsMoreData ⇒
+        case m:parsing.HttpMessage ⇒ {
+          println(s"Read http request $messageOutput")
+          connection ! Write(ByteString(s"HTTP/1.1 200 OK\r\nServer: akka-http/1.0.0\r\nDate: Thu, 25 Aug 2011 09:10:29 GMT\r\nContent-Length: 0\r\n\r\n"))
+          connection ! CloseCommand
+        }
+      }
   }
 }
 

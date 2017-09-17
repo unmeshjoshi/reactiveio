@@ -16,7 +16,9 @@ object HttpResponseRenderer extends GraphStage[FlowShape[HttpResponse, ByteStrin
       setHandler(in, new InHandler {
         override def onPush(): Unit = {
           val httpResponse: HttpResponse = grab(in)
-          val resultValue = ByteString(httpResponse.response)
+          val responseText = httpResponse.response
+          val response = s"HTTP/1.1 200 OK\r\nServer: akka-http/1.0.0\r\nDate: Thu, 25 Aug 2011 09:10:29 GMT\r\nContent-Length: ${responseText.length}\r\n\r\n${responseText}"
+          val resultValue = ByteString(response)
           push(out, resultValue) // this is where the response is rendered
           completeStage()
         }

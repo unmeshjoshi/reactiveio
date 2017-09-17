@@ -6,7 +6,6 @@ import akka.actor.{Actor, Props}
 //this is just to make it map easily to akka.io.
 abstract class SelectorBasedManager() extends Actor {
   val selectorPool = context.actorOf(Props(new SelectionHandler))
-
   def selector = selectorPool
 }
 
