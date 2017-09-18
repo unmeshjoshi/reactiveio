@@ -85,7 +85,13 @@ object SingleThreadedNIOServer extends App {
 
     println(s"Writing response for ${httpRequest}")
     val responseText = "Hello NIO Server"
-    val response = s"HTTP/1.1 200 OK\r\nServer: akka-http/1.0.0\r\nDate: Thu, 25 Aug 2011 09:10:29 GMT\r\nContent-Length: ${responseText.length}\r\n\r\n${responseText}"
+    val response =
+      """HTTP/1.1 200 OK
+        |Server: akka-http/1.0.0
+        |Date: Thu, 25 Aug 2011 09:10:29 GMT
+        |Content-Length: ${responseText.length}
+        |
+        |${responseText}""".stripMargin.replace("\n", "\r\n")
 
     socketChannel.write(ByteBuffer.wrap(response.getBytes("UTF-8")))
     socketChannel.close()
