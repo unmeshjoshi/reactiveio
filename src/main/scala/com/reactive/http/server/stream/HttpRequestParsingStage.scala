@@ -8,11 +8,6 @@ import com.reactive.http.parser.{HttpRequestParser, parsing}
 
 class HttpRequestParsingStage extends GraphStage[FlowShape[ByteString, HttpRequest]] { self ⇒
 
-  trait RequestOutput
-  case object NeedMoreData extends RequestOutput
-  case object StreamEnd extends RequestOutput
-
-
   val in = Inlet[ByteString]("httpParser.in")
   val out = Outlet[HttpRequest]("httpParser.out")
 
