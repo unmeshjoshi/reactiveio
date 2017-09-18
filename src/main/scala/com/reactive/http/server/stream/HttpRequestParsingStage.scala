@@ -32,7 +32,7 @@ class HttpRequestParsingStage extends GraphStage[FlowShape[ByteString, HttpReque
 
     override def onPull(): Unit = pull(in)
 
-    private def handleParserOutput(output: Any): Unit = {
+    private def handleParserOutput(output: parsing.MessageOutput): Unit = {
       output match {
         case parsing.NeedsMoreData ⇒ pull(in)
         case m:parsing.HttpMessage ⇒ push(out, m.request)
