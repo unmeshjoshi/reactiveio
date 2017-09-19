@@ -29,7 +29,11 @@ class HttpRequestParsingStage extends GraphStage[FlowShape[ByteString, HttpReque
 
     private def handleParserOutput(output: parsing.MessageOutput): Unit = {
       output match {
-        case parsing.NeedsMoreData ⇒ pull(in)
+        case parsing.NeedsMoreData ⇒ {
+
+          println("********************************************************************************* NEEDS MORE DATA**********************************************************************")
+          pull(in)
+        }
         case m:parsing.HttpMessage ⇒ push(out, m.request)
       }
     }

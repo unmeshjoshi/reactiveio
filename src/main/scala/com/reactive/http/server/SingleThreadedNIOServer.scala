@@ -82,11 +82,11 @@ object SingleThreadedNIOServer extends App {
   def write(key: SelectionKey) = {
     val socketChannel = key.channel().asInstanceOf[SocketChannel]
     val httpRequest = key.attachment().asInstanceOf[com.reactive.http.model.HttpRequest]
-
+    Thread.sleep(50) // to simulate some processing
     println(s"Writing response for ${httpRequest}")
     val responseText = "Hello NIO Server"
     val response =
-      """HTTP/1.1 200 OK
+      s"""HTTP/1.1 200 OK
         |Server: akka-http/1.0.0
         |Date: Thu, 25 Aug 2011 09:10:29 GMT
         |Content-Length: ${responseText.length}

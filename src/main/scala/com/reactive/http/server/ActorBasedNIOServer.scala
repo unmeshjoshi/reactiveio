@@ -18,10 +18,11 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
       messageOutput match {
         case parsing.NeedsMoreData ⇒
         case m:parsing.HttpMessage ⇒ {
+          Thread.sleep(50) // to simulate some processing
           println(s"Read http request $messageOutput")
           val responseText = "Hello Actor Based Server!"
           val response =
-            """HTTP/1.1 200 OK
+            s"""HTTP/1.1 200 OK
               |Server: akka-http/1.0.0
               |Date: Thu, 25 Aug 2011 09:10:29 GMT
               |Content-Length: ${responseText.length}
