@@ -6,6 +6,8 @@ import java.nio.channels.spi.{AbstractSelector, SelectorProvider}
 import java.nio.channels.{SelectionKey, ServerSocketChannel, SocketChannel}
 
 import akka.util.ByteString
+import com.reactive.http.SampleResponse
+import com.reactive.http.model.HttpRequest
 import com.reactive.http.parser.{HttpRequestParser, parsing}
 
 import scala.annotation.tailrec
@@ -79,12 +81,16 @@ object SingleThreadedNIOServer extends App {
     ByteString(buffer)
   }
 
+
   def write(key: SelectionKey) = {
     val socketChannel = key.channel().asInstanceOf[SocketChannel]
-    val httpRequest = key.attachment().asInstanceOf[com.reactive.http.model.HttpRequest]
-    Thread.sleep(10) // to simulate some processing
+    val httpRequest = key.attachment().asInstanceOf[HttpRequest]
+
     println(s"Writing response for ${httpRequest}")
-    val responseText = "Hello NIO Server"
+
+
+    val responseText: String = SampleResponse.json
+
     val response =
       s"""HTTP/1.1 200 OK
         |Server: akka-http/1.0.0
@@ -93,7 +99,12 @@ object SingleThreadedNIOServer extends App {
         |
         |${responseText}""".stripMargin.replace("\n", "\r\n")
 
-    socketChannel.write(ByteBuffer.wrap(response.getBytes("UTF-8")))
+    val responseBytes = response.getBytes("UTF-8")
+    val bytesWritten = socketChannel.write(ByteBuffer.wrap(responseBytes))
+    if (bytesWritten < responseBytes.length) {
+      val remainingBytes = responseBytes.drop(bytesWritten)
+
+    }
     socketChannel.close()
   }
 }

@@ -17,7 +17,6 @@ object HttpResponseRenderer extends GraphStage[FlowShape[HttpResponse, ByteStrin
         override def onPush(): Unit = {
           val httpResponse: HttpResponse = grab(in)
           val responseText = httpResponse.response
-          Thread.sleep(10) // to simulate some processing
           val response =
             s"""HTTP/1.1 200 OK
               |Server: akka-http/1.0.0

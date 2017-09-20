@@ -22,8 +22,8 @@ val project = Project(
       "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion,
       "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       "com.typesafe.akka" %% "akka-http" % "10.0.9",
-      "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.9",
-      "com.typesafe.akka" %% "akka-http-testkit" % "10.0.9"
+      "com.typesafe.akka" %% "akka-http-testkit" % "10.0.9",
+      "com.typesafe.play" % "play-json_2.12" % "2.6.5"
     ),
     javaOptions in run ++= Seq(
       "-Xms128m", "-Xmx1024m"),

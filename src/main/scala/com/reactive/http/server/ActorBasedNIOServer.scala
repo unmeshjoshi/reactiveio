@@ -2,8 +2,11 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.util.ByteString
+import com.reactive.http.SampleResponse
+import com.reactive.http.model.Customer
 import com.reactive.http.parser.{HttpRequestParser, parsing}
 import com.reactive.http.server.actor._
+import play.api.libs.json.Json
 
 //this represents a TcpStreamLogic graph stage. Handles reading from and writing to connection based on pull/push
 class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddress) extends Actor {
@@ -18,9 +21,11 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
       messageOutput match {
         case parsing.NeedsMoreData ⇒
         case m:parsing.HttpMessage ⇒ {
-          Thread.sleep(10) // to simulate some processing
+
           println(s"Read http request $messageOutput")
-          val responseText = "Hello Actor Based Server!"
+
+          val responseText = SampleResponse.json
+
           val response =
             s"""HTTP/1.1 200 OK
               |Server: akka-http/1.0.0
