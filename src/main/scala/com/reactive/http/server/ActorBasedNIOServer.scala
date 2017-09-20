@@ -18,7 +18,7 @@ class TcpConnectionHandler(connection: ActorRef, remoteAddress: InetSocketAddres
       messageOutput match {
         case parsing.NeedsMoreData ⇒
         case m:parsing.HttpMessage ⇒ {
-          Thread.sleep(50) // to simulate some processing
+          Thread.sleep(10) // to simulate some processing
           println(s"Read http request $messageOutput")
           val responseText = "Hello Actor Based Server!"
           val response =

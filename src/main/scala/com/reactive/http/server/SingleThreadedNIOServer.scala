@@ -82,7 +82,7 @@ object SingleThreadedNIOServer extends App {
   def write(key: SelectionKey) = {
     val socketChannel = key.channel().asInstanceOf[SocketChannel]
     val httpRequest = key.attachment().asInstanceOf[com.reactive.http.model.HttpRequest]
-    Thread.sleep(50) // to simulate some processing
+    Thread.sleep(10) // to simulate some processing
     println(s"Writing response for ${httpRequest}")
     val responseText = "Hello NIO Server"
     val response =
