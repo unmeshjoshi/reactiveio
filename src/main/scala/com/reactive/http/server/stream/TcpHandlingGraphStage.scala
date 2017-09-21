@@ -109,7 +109,7 @@ class TcpStreamLogic(val shape: FlowShape[ByteString, ByteString], connection: A
     val actor: GraphStageLogic.StageActor = getStageActor(connected)
     actor.watch(connection)
     connection ! Register(actor.ref, keepOpenOnPeerClosed = true, useResumeWriting = false)
-    pull(bytesIn)
+    pull(bytesIn) //this pull triggers start reading data from connection and start writing to connection
   }
 
 

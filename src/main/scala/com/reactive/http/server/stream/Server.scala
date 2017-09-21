@@ -21,13 +21,20 @@ object Server {
     requestParsingFlow
   }
 
-  def rendering(): Flow[HttpResponse, ByteString, NotUsed] = Flow[HttpResponse].via(HttpResponseRenderer)
+  def rendering(): Flow[HttpResponse, ByteString, NotUsed] = {
+    val identityFlow = Flow[HttpResponse]
+    identityFlow.via(HttpResponseRenderer)
+  }
 
   def bindAndHandle(handler: HttpRequest ⇒ HttpResponse, endpoint: InetSocketAddress)(implicit materializer: Materializer): Unit = {
 
-    val handlerFlow: Flow[HttpRequest, HttpResponse, Future[Done]] = Flow[HttpRequest].map(handler).watchTermination()(Keep.right)
+    val identityFlow = Flow[HttpRequest]
+    val mappedHandlerFlow: Flow[HttpRequest, HttpResponse, NotUsed] = identityFlow.map(handler)
+    val handlerFlow: Flow[HttpRequest, HttpResponse, Future[Done]] = mappedHandlerFlow.watchTermination()(Keep.right)
 
-    val parsingRendering: BidiFlow[HttpResponse, ByteString, ByteString, HttpRequest, NotUsed] = BidiFlow.fromFlows(rendering(), parsing())
+    val renderingFlow: Flow[HttpResponse, ByteString, NotUsed] = rendering()
+    val parsingFlow: Flow[ByteString, HttpRequest, NotUsed] = parsing()
+    val parsingRendering: BidiFlow[HttpResponse, ByteString, ByteString, HttpRequest, NotUsed] = BidiFlow.fromFlows(renderingFlow, parsingFlow)
 
     /**
       *
@@ -56,6 +63,6 @@ object Server {
       }
     )
 
-    mappedAsyncSource.runWith(Sink.ignore)
+    mappedAsyncSource.runWith(Sink.ignore) //this triggers first pull to start accepting connections.
   }
 }

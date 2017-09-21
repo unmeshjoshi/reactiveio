@@ -6,10 +6,10 @@ import play.api.libs.json.Json
 object SampleResponse {
   def json = {
     var n = 1
-    var address = "m" * 2048
+    var _2kbAddress = "m" * 2048
 
-    address = address + "  Lexington, MA 02457"
-    val customer = Customer(s"Test User", "08/08/1976", s"${address}")
+    _2kbAddress = _2kbAddress + "  Lexington, MA 02457"
+    val customer = Customer(s"Test User", "08/08/1976", s"${_2kbAddress}")
 
     val start = System.currentTimeMillis()
     val responseText = Json.toJson(customer).toString()
