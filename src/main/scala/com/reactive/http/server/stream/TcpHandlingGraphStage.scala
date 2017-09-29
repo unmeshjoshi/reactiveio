@@ -90,7 +90,7 @@ class TcpStreamLogic(val shape: FlowShape[ByteString, ByteString], connection: A
   val writeHandler = new InHandler {
     override def onPush(): Unit = {
       val elem = grab(bytesIn)
-      println(s"Writing ${elem}")
+      println(s"Writing all the bytes ${elem}")
       connection ! Write(elem.asInstanceOf[ByteString], WriteAck)
     }
 

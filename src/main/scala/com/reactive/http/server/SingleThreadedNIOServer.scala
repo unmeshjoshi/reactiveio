@@ -76,7 +76,7 @@ object SingleThreadedNIOServer extends App {
 
   private def readFromSocket(socketChannel: SocketChannel) = {
     val buffer = ByteBuffer.allocate(1024)
-    val bytesRead = socketChannel.read(buffer)
+    socketChannel.read(buffer)
     buffer.flip()
     ByteString(buffer)
   }
@@ -103,7 +103,7 @@ object SingleThreadedNIOServer extends App {
     val bytesWritten = socketChannel.write(ByteBuffer.wrap(responseBytes))
     if (bytesWritten < responseBytes.length) {
       val remainingBytes = responseBytes.drop(bytesWritten)
-
+      println(s"${remainingBytes} yet to be written to channel") //TODO
     }
     socketChannel.close()
   }

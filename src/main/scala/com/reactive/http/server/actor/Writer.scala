@@ -63,7 +63,7 @@ object Writer {
     def doWrite(): PendingWrite = {
       @tailrec def writeToChannel(data: ByteString): PendingWrite = {
         println(s"Started writing ${data}")
-        val writtenBytes = channel.write(buffer) // at first we try to drain the remaining bytes from the buffer
+        channel.write(buffer) // at first we try to drain the remaining bytes from the buffer
         if (buffer.hasRemaining) {
           // we weren't able to write all bytes from the buffer, so we need to try again later
           if (data eq remainingData) this

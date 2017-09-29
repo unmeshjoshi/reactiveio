@@ -8,13 +8,15 @@ import com.reactive.http.model.HttpRequest
 
 import scala.annotation.{switch, tailrec}
 
-package object parsing {
+object parsing {
 
   sealed trait MessageOutput
-  case object NeedsMoreData extends MessageOutput
-  case class HttpMessage(request:HttpRequest) extends MessageOutput
 
-  class ParsingException(val message:String = "") extends RuntimeException
+  case object NeedsMoreData extends MessageOutput
+
+  case class HttpMessage(request: HttpRequest) extends MessageOutput
+
+  class ParsingException(val message: String = "") extends RuntimeException
 
   object NotEnoughDataException extends RuntimeException
 
@@ -47,21 +49,20 @@ class HttpRequestParser {
     parsing.NeedsMoreData
   }
 
-  private def done(): parsing.MessageOutput = null
-
   protected final def startNewMessage(input: ByteString, offset: Int): parsing.MessageOutput = {
     try {
       val result = parseMessage(input, offset)
       result
     }
-    catch { case parsing.NotEnoughDataException ⇒ continue(input, offset)(startNewMessage) }
+    catch {
+      case parsing.NotEnoughDataException ⇒ continue(input, offset)(startNewMessage)
+    }
   }
 
   import parsing._
 
   var method: HttpMethod = _
   var uri: Uri = _
-
 
 
   def parseMethod(input: ByteString, cursor: Int): Int = {
@@ -82,7 +83,7 @@ class HttpRequestParser {
   }
 
 
-  def parseBytes(input:ByteString):parsing.MessageOutput= {
+  def parseBytes(input: ByteString): parsing.MessageOutput = {
     state(input)
   }
 
@@ -117,17 +118,18 @@ class HttpRequestParser {
   }
 
 
-  var protocol:String = "HTTP/1.1"
+  var protocol: String = "HTTP/1.1"
 
   protected final def parseProtocol(input: ByteString, cursor: Int): Int = {
     def c(ix: Int) = byteChar(input, cursor + ix)
+
     if (c(0) == 'H' && c(1) == 'T' && c(2) == 'T' && c(3) == 'P' && c(4) == '/' && c(5) == '1' && c(6) == '.') {
       protocol = c(7) match {
         case '0' ⇒ "HTTP/1.0"
         case '1' ⇒ "HTTP/1.1"
-        case _   ⇒ throw new ParsingException(s"Invalid protocol ${cursor}")
+        case _ ⇒ throw new ParsingException(s"Invalid protocol ${cursor}")
       }
       cursor + 8
-    } else throw new ParsingException("Invalid protocol ${cursor}")
+    } else throw new ParsingException(s"Invalid protocol ${cursor}")
   }
 }

@@ -34,7 +34,7 @@ class SelectTask(val executionContext: ExecutionContext, selector: Selector) ext
               }
               case x if (x & OP_ACCEPT) > 0 ⇒ connection ! ChannelAcceptable
               case x if (x & OP_CONNECT) > 0 ⇒ connection ! ChannelConnectable
-              case x ⇒ println("Invalid readyOps: [{}]", x)
+              case x ⇒ println(s"Invalid readyOps: ${x}")
             }
           } catch {
             case _: CancelledKeyException ⇒

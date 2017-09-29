@@ -5,7 +5,6 @@ import play.api.libs.json.Json
 
 object SampleResponse {
   def json = {
-    var n = 1
     var _2kbAddress = "m" * 2048
 
     _2kbAddress = _2kbAddress + "  Lexington, MA 02457"
