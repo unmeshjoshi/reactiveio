@@ -1,7 +1,7 @@
 import com.typesafe.sbt.SbtMultiJvm
 import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
 
-val akkaVersion = "2.5.3"
+val akkaVersion = "2.5.6"
 
 val project = Project(
   id = "reactiveio",
@@ -10,7 +10,7 @@ val project = Project(
   .settings(SbtMultiJvm.multiJvmSettings: _*)
   .settings(
     name := "reactiveio",
-    scalaVersion := "2.12.2",
+    scalaVersion := "2.12.4",
     scalacOptions in Compile ++= Seq("-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Xlog-reflective-calls", "-Xlint"),
     javacOptions in Compile ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation"),
     libraryDependencies ++= Seq(

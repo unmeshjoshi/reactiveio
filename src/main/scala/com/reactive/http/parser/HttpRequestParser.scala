@@ -35,7 +35,7 @@ object parsing {
 }
 
 class HttpRequestParser {
-  private[this] var state: ByteString ⇒ parsing.MessageOutput = startNewMessage(_, 0)
+  private var state: ByteString ⇒ parsing.MessageOutput = startNewMessage(_, 0)
 
   protected final def continue(input: ByteString, offset: Int)(next: (ByteString, Int) ⇒ parsing.MessageOutput): parsing.MessageOutput = {
     state =
