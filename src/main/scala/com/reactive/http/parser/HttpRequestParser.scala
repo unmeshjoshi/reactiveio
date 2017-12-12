@@ -42,7 +42,8 @@ class HttpRequestParser {
       math.signum(offset - input.length) match {
         case -1 ⇒
           val remaining = input.drop(offset)
-          more ⇒ next(remaining ++ more, 0)
+          val stringToOutput: ByteString ⇒ parsing.MessageOutput = more ⇒ next(remaining ++ more, 0)
+          stringToOutput
         case 0 ⇒ next(_, 0)
         case 1 ⇒ throw new IllegalStateException
       }

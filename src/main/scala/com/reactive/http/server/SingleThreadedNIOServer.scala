@@ -86,9 +86,6 @@ object SingleThreadedNIOServer extends App {
     val socketChannel = key.channel().asInstanceOf[SocketChannel]
     val httpRequest = key.attachment().asInstanceOf[HttpRequest]
 
-    println(s"Writing response for ${httpRequest}")
-
-
     val responseText: String = SampleResponse.json
 
     val response =

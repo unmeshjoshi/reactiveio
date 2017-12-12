@@ -63,7 +63,7 @@ class TcpHandlingGraphStage(
 
       setHandler(out, new OutHandler {
         override def onPull(): Unit = {
-          println("ObPull, resuming accepting connections")
+          println("OnPull, resuming accepting connections")
           // Ignore if still binding
           if (listener ne null) listener ! ResumeAccepting(1)
         }

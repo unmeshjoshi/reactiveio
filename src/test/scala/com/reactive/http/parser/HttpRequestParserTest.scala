@@ -3,7 +3,7 @@ package com.reactive.http.parser
 import akka.http.scaladsl.model.HttpMethods
 import akka.util.ByteString
 import com.reactive.http.model.HttpRequest
-import com.reactive.http.parser.parsing.HttpMessage
+import com.reactive.http.parser.parsing.{HttpMessage, NeedsMoreData}
 import org.scalatest.FunSuite
 
 
