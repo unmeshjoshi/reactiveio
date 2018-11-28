@@ -1,8 +1,5 @@
 package com.reactive.stream.impl
 
-import akka.stream.{AmorphousShape, Attributes, InPort, OutPort}
-import akka.stream.impl.StreamLayout.{CompositeModule, Debug, Module, validate}
-
 case object Empty
 final class Connection(
                         var id:         Int,
