@@ -1,9 +1,7 @@
 package com.reactive.stream.impl
 
-import akka.stream._
-import akka.stream.impl.StreamLayout.{AtomicModule, MaterializedValueNode, Module, _}
-import akka.stream.scaladsl.Keep
-import akka.stream.stage.GraphStageWithMaterializedValue
+import akka.stream.{AmorphousShape, Attributes, InPort, OutPort}
+import akka.stream.impl.StreamLayout.{CompositeModule, Debug, Module, validate}
 
 case object Empty
 final class Connection(
@@ -65,11 +63,28 @@ trait Module {
 
   def fuse(that: Module, from: Outlet, to: Inlet) = {
     this.compose(that).wire(from, to)
-
-    singleSource.module.fuse(sinkCopy, singleSource.shape.out, sinkCopy.shape.inlets.head, Keep.left)
   }
 
-  def compose[A, B, C](that: Module, f: (A, B) ⇒ C): Module = {
+  final def wire(from: Outlet, to: Inlet): Module = {
+
+    require(
+      Outlets(from),
+      if (downstreams.contains(from)) s"The output port [$from] is already connected"
+      else s"The output port [$from] is not part of the underlying graph.")
+    require(
+      Inlets(to),
+      if (upstreams.contains(to)) s"The input port [$to] is already connected"
+      else s"The input port [$to] is not part of the underlying graph.")
+
+    CompositeModule(
+      if (isSealed) Set(this) else subModules,
+      Shape(shape.inlets.filterNot(_ == to), shape.outlets.filterNot(_ == from)),
+      downstreams.updated(from, to),
+      upstreams.updated(to, from),
+      if (isSealed) Map() else attributes)
+  }
+
+  def compose[A, B, C](that: Module): Module = {
     val modulesLeft = if (this.isSealed) Set(this) else this.subModules
     val modulesRight = if (that.isSealed) Set(that) else that.subModules
 
@@ -105,7 +120,7 @@ final case class CompositeModule(
 class SinkStage extends StreamStage {
   val in = Inlet("In")
   override val shape: Shape = new Shape(List(in), List())
-  val module = new Module(this, Map(), shape)
+  val module = new GraphStageModule(shape, Map(), this)
 
   def createLogic(): GraphStageLogic = {
     new GraphStageLogic(shape.inlets.size, shape.outlets.size) with InHandler {
@@ -120,7 +135,7 @@ class SourceStage extends StreamStage {
   val out = Outlet("Out")
   override val shape = new Shape(List(), List(out))
 
-  val module = new Module(this, Map(), shape)
+  val module = new GraphStageModule(shape, Map(), this)
 
   def createLogic():GraphStageLogic = {
     new GraphStageLogic(shape.inlets.size, shape.outlets.size) with OutHandler  {
