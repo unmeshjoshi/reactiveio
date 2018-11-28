@@ -1,4 +1,4 @@
-val akkaVersion = "2.5.6"
+val akkaVersion = "2.5.7"
 
 val project = Project(
   id = "reactiveio",
