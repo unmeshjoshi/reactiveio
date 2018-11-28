@@ -1,7 +1,9 @@
 package com.reactive.http.parser
 
-import akka.http.impl.util.ByteStringParserInput
+import java.nio.charset.StandardCharsets
+
 import akka.http.scaladsl.model.{HttpMethod, IllegalUriException, Uri}
+import akka.parboiled2.ParserInput.DefaultParserInput
 import akka.util.ByteString
 import com.reactive.http.model
 import com.reactive.http.model.HttpRequest
@@ -34,6 +36,14 @@ object parsing {
     if (ix < input.length) input(ix) else throw NotEnoughDataException
 }
 
+
+final class ByteStringParserInput(bytes: ByteString) extends DefaultParserInput {
+  override def charAt(ix: Int): Char = (bytes(ix) & 0xFF).toChar
+  override def length: Int = bytes.size
+  override def sliceString(start: Int, end: Int): String = bytes.slice(start, end).decodeString(StandardCharsets.ISO_8859_1)
+  override def sliceCharArray(start: Int, end: Int): Array[Char] =
+    StandardCharsets.ISO_8859_1.decode(bytes.slice(start, end).asByteBuffer).array()
+}
 class HttpRequestParser {
   private var state: ByteString ⇒ parsing.MessageOutput = startNewMessage(_, 0)
 

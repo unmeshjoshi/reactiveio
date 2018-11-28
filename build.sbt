@@ -17,8 +17,8 @@ val project = Project(
       "org.tmatesoft.svnkit" % "svnkit" % "1.8.11",
       "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion,
       "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      "com.typesafe.akka" %% "akka-http" % "10.0.9",
-      "com.typesafe.akka" %% "akka-http-testkit" % "10.0.9",
+      "com.typesafe.akka" %% "akka-http" % "10.1.3",
+      "com.typesafe.akka" %% "akka-http-testkit" % "10.1.3",
       "com.typesafe.play" % "play-json_2.12" % "2.6.5"
     )
   )

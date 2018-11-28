@@ -13,6 +13,7 @@ object StreamBasedNIOServer extends App {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   Server.bindAndHandle((request:HttpRequest) ⇒ {
     val responseText = SampleResponse.json
+    Thread.sleep(100000)
     HttpResponse(responseText)
   }, new InetSocketAddress("localhost", 5555)/*Figure out how to send request handling flow*/)
 }
